@@ -6,6 +6,7 @@ from mcp.server.fastmcp import FastMCP
 from polygon import RESTClient
 from importlib.metadata import version, PackageNotFoundError
 from .formatters import json_to_csv
+from .tools import stocks, options, futures, crypto, forex, economy, indices
 
 # Configure logging
 logging.basicConfig(
@@ -14,9 +15,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)],  # MCP uses stderr for logs
 )
 logger = logging.getLogger("mcp_polygon")
-
-# Import tool registration functions
-from .tools import stocks, options, futures, crypto, forex, economy, indices
 
 POLYGON_API_KEY = os.environ.get("POLYGON_API_KEY", "")
 if not POLYGON_API_KEY:

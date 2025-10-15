@@ -676,13 +676,13 @@ class TestOptionsToolsPhase2:
         register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
         tool = mcp._tool_manager._tools["list_options_contracts"]
 
-        result = await tool.fn(underlying_asset="SPY", contract_type="call")
+        result = await tool.fn(underlying_ticker="SPY", contract_type="call")
 
         assert "ticker" in result
         assert "O:SPY251219C00650000" in result
         assert "underlying_ticker" in result
         mock_polygon_client.list_options_contracts.assert_called_once_with(
-            underlying_asset="SPY",
+            underlying_ticker="SPY",
             contract_type="call",
             expiration_date=None,
             strike_price=None,
@@ -707,9 +707,7 @@ class TestOptionsToolsPhase2:
                 "exercise_style": "american"
             }
         }
-        # Ensure mock has the method
-        from unittest.mock import Mock
-        mock_polygon_client.get_options_contract = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_options_contract.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -724,7 +722,7 @@ class TestOptionsToolsPhase2:
         assert "O:SPY251219C00650000" in result
         assert "strike_price" in result
         mock_polygon_client.get_options_contract.assert_called_once_with(
-            options_ticker="O:SPY251219C00650000",
+            ticker="O:SPY251219C00650000",
             params=None,
             raw=True
         )
@@ -747,8 +745,8 @@ class TestOptionsToolsPhase2:
                 }
             ]
         }
-        # Tool code calls get_options_chain (SDK method is list_snapshot_options_chain)
-        mock_polygon_client.get_options_chain.return_value = mock_response(mock_data)
+        # Tool code calls list_snapshot_options_chain
+        mock_polygon_client.list_snapshot_options_chain.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -761,7 +759,7 @@ class TestOptionsToolsPhase2:
 
         assert "ticker" in result
         assert "strike_price" in result
-        mock_polygon_client.get_options_chain.assert_called_once_with(
+        mock_polygon_client.list_snapshot_options_chain.assert_called_once_with(
             underlying_asset="SPY",
             strike_price=None,
             expiration_date=None,
@@ -847,7 +845,7 @@ class TestStocksToolsPhase2:
 
     @pytest.mark.asyncio
     async def test_list_ticker_events_success(self, mock_polygon_client, mock_response, api_wrapper):
-        """Test list_ticker_events with successful response (vx method)."""
+        """Test list_ticker_events with successful response."""
         mock_data = {
             "status": "OK",
             "results": [
@@ -863,7 +861,7 @@ class TestStocksToolsPhase2:
                 }
             ]
         }
-        mock_polygon_client.vx.list_ticker_events.return_value = mock_response(mock_data)
+        mock_polygon_client.get_ticker_events.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -872,12 +870,12 @@ class TestStocksToolsPhase2:
         register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
         tool = mcp._tool_manager._tools["list_ticker_events"]
 
-        result = await tool.fn(id="AAPL", types="earnings,dividend")
+        result = await tool.fn(ticker="AAPL", types="earnings,dividend")
 
         assert "event_type" in result
         assert "earnings" in result
-        mock_polygon_client.vx.list_ticker_events.assert_called_once_with(
-            id="AAPL",
+        mock_polygon_client.get_ticker_events.assert_called_once_with(
+            ticker="AAPL",
             types="earnings,dividend",
             params=None,
             raw=True
@@ -895,8 +893,7 @@ class TestStocksToolsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -933,8 +930,7 @@ class TestStocksToolsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_ema = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_ema.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -959,8 +955,7 @@ class TestStocksToolsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_macd = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_macd.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -985,8 +980,7 @@ class TestStocksToolsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_rsi = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_rsi.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1040,7 +1034,7 @@ class TestIndicesToolsPhase2:
                 }
             ]
         }
-        mock_polygon_client.get_indices_snapshot.return_value = mock_response(mock_data)
+        mock_polygon_client.get_snapshot_indices.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.indices import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1054,7 +1048,7 @@ class TestIndicesToolsPhase2:
         assert "ticker" in result
         assert "I:SPX" in result
         assert "session_close" in result
-        mock_polygon_client.get_indices_snapshot.assert_called_once_with(
+        mock_polygon_client.get_snapshot_indices.assert_called_once_with(
             ticker_any_of="I:SPX,I:DJI",
             order=None,
             limit=10,
@@ -1074,8 +1068,7 @@ class TestIndicesToolsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.indices import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1115,8 +1108,7 @@ class TestTechnicalIndicatorsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1141,8 +1133,7 @@ class TestTechnicalIndicatorsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.forex import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1178,8 +1169,7 @@ class TestTechnicalIndicatorsPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.crypto import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1334,7 +1324,7 @@ class TestErrorHandlingPhase2:
         register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
         tool = mcp._tool_manager._tools["list_options_contracts"]
 
-        result = await tool.fn(underlying_asset="INVALID")
+        result = await tool.fn(underlying_ticker="INVALID")
 
         assert "Error" in result or "not found" in result.lower()
 
@@ -1342,12 +1332,10 @@ class TestErrorHandlingPhase2:
     async def test_get_sma_401_error(self, mock_polygon_client, api_wrapper):
         """Test get_sma handles 401 authentication error."""
         # Mock an HTTP 401 error
-        from unittest.mock import Mock
         error = Mock()
         error.response = Mock()
         error.response.status_code = 401
-        from unittest.mock import Mock as MockMethod
-        mock_polygon_client.get_sma = MockMethod(side_effect=error)
+        mock_polygon_client.get_sma.side_effect = error
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1368,7 +1356,7 @@ class TestErrorHandlingPhase2:
         error = Mock()
         error.response = Mock()
         error.response.status_code = 429
-        mock_polygon_client.get_indices_snapshot.side_effect = error
+        mock_polygon_client.get_snapshot_indices.side_effect = error
 
         from src.mcp_polygon.tools.indices import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1407,7 +1395,7 @@ class TestCSVFormattingPhase2:
                 }
             ]
         }
-        mock_polygon_client.get_options_chain.return_value = mock_response(mock_data)
+        mock_polygon_client.list_snapshot_options_chain.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1437,8 +1425,7 @@ class TestCSVFormattingPhase2:
                 ]
             }
         }
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1471,14 +1458,14 @@ class TestParameterValidationPhase2:
         tool = mcp._tool_manager._tools["list_options_contracts"]
 
         result = await tool.fn(
-            underlying_asset="SPY",
+            underlying_ticker="SPY",
             contract_type="call",
             strike_price=650.0,
             expiration_date="2025-12-19"
         )
 
         mock_polygon_client.list_options_contracts.assert_called_once_with(
-            underlying_asset="SPY",
+            underlying_ticker="SPY",
             contract_type="call",
             expiration_date="2025-12-19",
             strike_price=650.0,
@@ -1493,8 +1480,7 @@ class TestParameterValidationPhase2:
     async def test_technical_indicator_custom_window(self, mock_polygon_client, mock_response, api_wrapper):
         """Test technical indicators with custom window parameter."""
         mock_data = {"status": "OK", "results": {"values": []}}
-        from unittest.mock import Mock
-        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+        mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP

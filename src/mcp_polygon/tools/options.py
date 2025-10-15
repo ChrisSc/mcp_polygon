@@ -98,6 +98,12 @@ def register_tools(mcp, client, formatter):
         return await api.call(
             "list_snapshot_options_chain",
             underlying_asset=underlying_asset,
+            strike_price=strike_price,
+            expiration_date=expiration_date,
+            contract_type=contract_type,
+            limit=limit,
+            order=order,
+            sort=sort,
             params=params,
         )
 
