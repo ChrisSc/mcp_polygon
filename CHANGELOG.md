@@ -1,9 +1,39 @@
 # Changelog
 
-All notable changes to the Polygon.io MCP Server will be documented in this file.
+**Fork Maintained By**: Chris Scragg (@ChrisSc)
+**Original Project**: [Polygon.io MCP Server](https://github.com/polygon-io/mcp_polygon)
+
+All notable changes to this fork will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.0.0] - 2025-10-15 - Standalone Repository Release
+
+### Changed
+- Converted from fork to standalone repository
+- Updated all repository URLs from polygon-io/mcp_polygon to ChrisSc/mcp_polygon
+- Updated installation instructions for standalone repo
+- Updated manifest.json, pyproject.toml, and glama.json with new maintainer information
+- Bumped version to 1.0.0 to signify production-ready standalone status
+
+### Added
+- Fork Information section in README.md explaining fork relationship
+- Credits section acknowledging Polygon.io as original author
+- CONTRIBUTING.md with guidelines for fork contributions
+- SECURITY.md with vulnerability reporting process
+- Project URLs in pyproject.toml (Homepage, Repository, Issues, Documentation)
+
+### Maintained
+- All 81 tools from Phase 3 (99% API coverage)
+- Code quality: A (94/100)
+- Security rating: 8/10
+- Full backward compatibility with v0.5.0 functionality
+- All original Polygon.io copyright and attribution preserved
+
+---
 
 ## [Unreleased] - Phase 3 Complete
 
@@ -152,6 +182,7 @@ Some Phase 2 tools require higher Polygon.io API tiers:
 ---
 
 ## Links
-- [GitHub Repository](https://github.com/polygon-io/mcp_polygon)
+- [GitHub Repository (Fork)](https://github.com/ChrisSc/mcp_polygon)
+- [Original Repository](https://github.com/polygon-io/mcp_polygon)
 - [Polygon.io Documentation](https://polygon.io/docs)
 - [Model Context Protocol](https://modelcontextprotocol.io)
