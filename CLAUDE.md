@@ -372,13 +372,4 @@ Some tools require higher Polygon.io API tiers:
 - MCP Specification: https://modelcontextprotocol.io
 - FastMCP SDK: https://github.com/modelcontextprotocol/python-sdk
 - Local docs: `polygon-docs/rest/` (Polygon API reference)
-- Project docs: `README.md`, `IMPLEMENTATION.md`, `TESTING.md`, `CHANGELOG.md`
-
-## Phase 3 Documentation (Essential Reading)
-
-- **ENDPOINT_PATTERNS.md** - How 81 tools serve 92 endpoints (architecture guide)
-- **PHASE3_COMPLETE.md** - Phase 3 final report (60 pages, comprehensive)
-- **PHASE3_GAP_ANALYSIS.md** - Technical coverage audit (9 pages)
-- **ANALYSIS_README.md** - Documentation navigation guide
-- **SECURITY_AUDIT_PHASE3.md** - Security assessment (8/10 rating maintained)
-- **COVERAGE_VISUALIZATION.md** - Visual charts showing 99% coverage
+- Project docs: `README.md`, `IMPLEMENTATION.md`, `TESTING.md`, `CHANGELOG.md`, `ENDPOINT_PATTERNS.md`

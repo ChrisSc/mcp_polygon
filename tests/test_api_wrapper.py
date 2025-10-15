@@ -1,7 +1,8 @@
 """Tests for the API wrapper module."""
+
 import pytest
 from unittest.mock import Mock
-from mcp_polygon.api_wrapper import PolygonAPIWrapper, PolygonAPIError
+from mcp_polygon.api_wrapper import PolygonAPIError
 
 
 def make_http_error(status_code: int) -> Exception:
@@ -114,7 +115,9 @@ class TestPolygonAPIWrapper:
     """Tests for PolygonAPIWrapper functionality."""
 
     @pytest.mark.asyncio
-    async def test_successful_api_call(self, api_wrapper, mock_response, sample_aggregate_data):
+    async def test_successful_api_call(
+        self, api_wrapper, mock_response, sample_aggregate_data
+    ):
         """Test successful API call returns formatted CSV."""
         # Setup mock
         api_wrapper.client.get_aggs.return_value = mock_response(sample_aggregate_data)
@@ -152,7 +155,7 @@ class TestPolygonAPIWrapper:
     async def test_method_not_found(self, api_wrapper):
         """Test handling of non-existent API method."""
         # Replace client with a spec'd mock that doesn't have invalid_method
-        limited_client = Mock(spec=['get_aggs', 'vx'])
+        limited_client = Mock(spec=["get_aggs", "vx"])
         limited_client.vx = Mock()
         api_wrapper.client = limited_client
 
@@ -244,7 +247,9 @@ class TestPolygonAPIWrapper:
         assert "TEST123" in result
 
     @pytest.mark.asyncio
-    async def test_multiple_parameters(self, api_wrapper, mock_response, sample_aggregate_data):
+    async def test_multiple_parameters(
+        self, api_wrapper, mock_response, sample_aggregate_data
+    ):
         """Test that all parameters are passed through correctly."""
         api_wrapper.client.get_aggs.return_value = mock_response(sample_aggregate_data)
 
@@ -302,9 +307,7 @@ class TestPolygonAPIWrapper:
         """Test that forex pairs are included in error context."""
         api_wrapper.client.get_last_forex_quote.side_effect = make_http_error(404)
 
-        result = await api_wrapper.call(
-            "get_last_forex_quote", from_="USD", to="EUR"
-        )
+        result = await api_wrapper.call("get_last_forex_quote", from_="USD", to="EUR")
 
         assert "Error" in result
         # Should include currency pair in context

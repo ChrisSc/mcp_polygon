@@ -1,4 +1,5 @@
 """API wrapper for consistent error handling and response formatting."""
+
 import logging
 from typing import Any, Callable, Dict, Optional
 
@@ -48,9 +49,7 @@ class PolygonAPIError:
                     "symbol or parameters."
                 )
             elif status == 429:
-                return (
-                    "Error: Rate limit exceeded. Please wait a moment and try again."
-                )
+                return "Error: Rate limit exceeded. Please wait a moment and try again."
             elif 500 <= status < 600:
                 return (
                     f"Error: Polygon API is experiencing issues (status {status}). "
@@ -84,7 +83,9 @@ class PolygonAPIError:
                 exc_info=True,
                 extra=context or {},
             )
-            return f"Error: An unexpected error occurred in {operation}. Please try again."
+            return (
+                f"Error: An unexpected error occurred in {operation}. Please try again."
+            )
 
 
 class PolygonAPIWrapper:
@@ -140,18 +141,28 @@ class PolygonAPIWrapper:
             results = method(**kwargs, raw=True)
 
             # Handle different response types from SDK
-            if hasattr(results, 'data'):
+            if hasattr(results, "data"):
                 # Binary response (most endpoints)
                 json_data = results.data.decode("utf-8")
-            elif hasattr(results, '__dict__'):
+            elif hasattr(results, "__dict__"):
                 # Object response (technical indicators, related companies)
                 import json
+
                 # Convert object to dict, handling nested objects
-                json_data = json.dumps(results, default=lambda o: o.__dict__ if hasattr(o, '__dict__') else str(o))
+                json_data = json.dumps(
+                    results,
+                    default=lambda o: o.__dict__ if hasattr(o, "__dict__") else str(o),
+                )
             elif isinstance(results, list):
                 # List response
                 import json
-                json_data = json.dumps([item.__dict__ if hasattr(item, '__dict__') else item for item in results])
+
+                json_data = json.dumps(
+                    [
+                        item.__dict__ if hasattr(item, "__dict__") else item
+                        for item in results
+                    ]
+                )
             else:
                 # Fallback to string conversion
                 json_data = str(results)
@@ -173,7 +184,9 @@ class PolygonAPIWrapper:
             if "ticker" in kwargs:
                 context["ticker"] = kwargs["ticker"]
             elif "from_" in kwargs:
-                context["currency_pair"] = f"{kwargs.get('from_', '')}_{kwargs.get('to', '')}"
+                context["currency_pair"] = (
+                    f"{kwargs.get('from_', '')}_{kwargs.get('to', '')}"
+                )
 
             # Log the full error for debugging
             logger.error(
