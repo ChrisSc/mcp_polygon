@@ -30,6 +30,58 @@ This server exposes all Polygon.io API endpoints as MCP tools, providing access 
 - Financial fundamentals
 - Market status and holidays
 
+## Architecture
+
+The MCP server is organized into a modular architecture for scalability and maintainability:
+
+### Project Structure
+
+```
+src/mcp_polygon/
+├── server.py          # Main MCP server (38 lines) - orchestrates tool registration
+├── formatters.py      # CSV output formatting utilities
+└── tools/             # Tool implementations by asset class
+    ├── stocks.py      # Stock market tools (36 tools)
+    ├── futures.py     # Futures market tools (11 tools)
+    ├── crypto.py      # Cryptocurrency tools (2 tools)
+    ├── forex.py       # Forex market tools (2 tools)
+    ├── economy.py     # Economic indicators (2 tools)
+    ├── options.py     # Options market tools (1 tool)
+    └── indices.py     # Market indices tools (coming in Phase 2)
+```
+
+### Tool Distribution
+
+| Asset Class | Tools | Coverage | Priority |
+|-------------|-------|----------|----------|
+| **Stocks** | 36 | 77% | Core |
+| **Futures** | 11 | 100% | Complete |
+| **Crypto** | 2 | 29% | Phase 2 |
+| **Forex** | 2 | 15% | Phase 2 |
+| **Economy** | 2 | 67% | Core |
+| **Options** | 1 | 4% | Phase 2 |
+| **Indices** | 0 | 0% | Phase 2 |
+| **Total** | **53** | **57%** | Expanding |
+
+### Current Implementation Status
+
+- **Phase 1 Complete** (53 tools): Core market data, aggregates, trades, quotes, snapshots
+- **Phase 2 Planning** (40 tools): Enhanced options coverage, technical indicators, additional endpoints
+
+For detailed architecture documentation, see:
+- `IMPLEMENTATION.md` - Complete implementation roadmap
+- `PHASE-1.md` - Phase 1 completion report
+- `REFACTORING_COMPLETE.md` - Architecture migration guide
+- `REST_AUDIT.csv` - Endpoint coverage analysis
+
+### Design Principles
+
+- **Modular**: Tools organized by asset class for easy navigation
+- **Scalable**: Architecture supports 100+ tools without complexity
+- **Type-Safe**: Comprehensive type hints throughout
+- **Read-Only**: All tools marked with `readOnlyHint=True` for safety
+- **CSV Output**: Token-efficient CSV format for LLM consumption
+
 ## Installation
 
 ### Prerequisites
@@ -123,18 +175,40 @@ Get me the latest crypto market data for BTC-USD
 
 ## Available Tools
 
-This MCP server implements all Polygon.io API endpoints as tools, including:
+This MCP server currently implements **53 tools** across 7 asset classes:
 
-- `get_aggs` - Stock aggregates (OHLC) data for a specific ticker
-- `list_trades` - Historical trade data
-- `get_last_trade` - Latest trade for a symbol
-- `list_ticker_news` - Recent news articles for tickers
-- `get_snapshot_ticker` - Current market snapshot for a ticker
-- `get_market_status` - Current market status and trading hours
-- `list_stock_financials` - Fundamental financial data
-- And many more...
+### Core Market Data (36 tools)
+- **Aggregates**: `get_aggs`, `list_aggs`, `get_grouped_daily_aggs`, `get_daily_open_close_agg`, `get_previous_close_agg`
+- **Trades**: `list_trades`, `get_last_trade`
+- **Quotes**: `list_quotes`, `get_last_quote`
+- **Snapshots**: `list_universal_snapshots`, `get_snapshot_all`, `get_snapshot_ticker`, `get_snapshot_direction`
+- **Reference Data**: `list_tickers`, `get_ticker_details`, `list_ticker_news`, `get_ticker_types`
+- **Corporate Actions**: `list_splits`, `list_dividends`, `list_conditions`, `get_exchanges`
+- **Financials**: `list_stock_financials`, `list_ipos`, `list_short_interest`, `list_short_volume`
+- **Market Operations**: `get_market_status`, `get_market_holidays`
+- **Analyst Data**: `list_benzinga_analyst_insights`, `list_benzinga_consensus_ratings`, `list_benzinga_earnings`, `list_benzinga_news`, `list_benzinga_ratings`
 
-Each tool follows the Polygon.io SDK parameter structure while converting responses to standard JSON that LLMs can easily process.
+### Futures (11 tools)
+- `list_futures_aggregates`, `list_futures_contracts`, `get_futures_contract_details`
+- `list_futures_products`, `get_futures_product_details`
+- `list_futures_quotes`, `list_futures_trades`, `list_futures_schedules`
+- `list_futures_market_statuses`, `get_futures_snapshot`
+
+### Cryptocurrency (2 tools)
+- `get_last_crypto_trade`, `get_snapshot_crypto_book`
+
+### Forex (2 tools)
+- `get_real_time_currency_conversion`, `get_last_forex_quote`
+
+### Economy (2 tools)
+- `list_treasury_yields`, `list_inflation`
+
+### Options (1 tool)
+- `get_snapshot_option`
+
+For a complete list of available tools and their parameters, run the MCP Inspector or see `REST_AUDIT.csv`.
+
+Each tool follows the Polygon.io SDK parameter structure while converting responses to CSV format for token-efficient LLM processing.
 
 ## Development
 

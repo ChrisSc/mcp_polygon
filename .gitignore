@@ -27,3 +27,6 @@ Thumbs.db
 
 # Environment and secrets
 .env.local
+
+anthropic-docs
+polygon-docs

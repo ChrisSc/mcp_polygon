@@ -1,0 +1,198 @@
+# POLYGON.IO REST API ENDPOINT AUDIT
+# Generated: 2025-10-15
+# Current Implementation: 53 tools in server.py
+# Target: ~93 REST tools for complete coverage
+
+# === SUMMARY STATISTICS ===
+# Total Endpoints Documented: 93
+# Currently Implemented: 53
+# Missing (To Implement): 40
+# Implementation Coverage: 57%
+#
+# By Asset Class:
+# - Stocks: 35 endpoints (27 implemented, 8 missing)
+# - Options: 25 endpoints (1 implemented, 24 missing)
+# - Futures: 12 endpoints (12 implemented, 0 missing)
+# - Indices: 15 endpoints (0 implemented, 15 missing)
+# - Forex: 20 endpoints (3 implemented, 17 missing)
+# - Crypto: 21 endpoints (6 implemented, 15 missing)
+# - Economy: 3 endpoints (2 implemented, 1 missing)
+#
+# By Priority Tier:
+# - Tier 1 (Critical): 12 endpoints missing
+# - Tier 2 (Important): 18 endpoints missing
+# - Tier 3 (Specialty): 10 endpoints missing
+#
+# Estimated Implementation Time:
+# - Tier 1: 36 hours (12 endpoints × 3 hours avg)
+# - Tier 2: 36 hours (18 endpoints × 2 hours avg)
+# - Tier 3: 15 hours (10 endpoints × 1.5 hours avg)
+# - Total: 87 hours (~11 days)
+
+endpoint_path,asset_class,endpoint_name,implemented,current_tool_name,priority_tier,complexity,estimated_hours,sdk_method,notes
+# === STOCKS (27/35 implemented = 77%) ===
+/v2/aggs/ticker/{stocksTicker}/range/{multiplier}/{timespan}/{from}/{to},stocks,Aggregate Bars,Y,get_aggs,1,Low,0,polygon_client.get_aggs,"Core aggregates endpoint, already implemented"
+/v2/aggs/ticker/{stocksTicker}/range/{multiplier}/{timespan}/{from}/{to},stocks,List Aggregate Bars (Iterator),Y,list_aggs,1,Low,0,polygon_client.list_aggs,"Iterator version of aggregates"
+/v2/aggs/grouped/locale/us/market/stocks/{date},stocks,Grouped Daily Bars,Y,get_grouped_daily_aggs,2,Low,0,polygon_client.get_grouped_daily_aggs,"Market-wide daily snapshot"
+/v1/open-close/{stocksTicker}/{date},stocks,Daily Open/Close,Y,get_daily_open_close_agg,1,Low,0,polygon_client.get_daily_open_close_agg,"Single day OHLC"
+/v2/aggs/ticker/{stocksTicker}/prev,stocks,Previous Close,Y,get_previous_close_agg,1,Low,0,polygon_client.get_previous_close_agg,"Prior day close"
+/v3/trades/{stockTicker},stocks,Trades (Historic),Y,list_trades,2,Low,0,polygon_client.list_trades,"Tick-level trade history"
+/v2/last/trade/{stocksTicker},stocks,Last Trade,Y,get_last_trade,1,Low,0,polygon_client.get_last_trade,"Most recent trade"
+/v3/quotes/{stockTicker},stocks,Quotes (Historic),Y,list_quotes,2,Low,0,polygon_client.list_quotes,"Historical NBBO quotes"
+/v2/last/nbbo/{stocksTicker},stocks,Last Quote,Y,get_last_quote,1,Low,0,polygon_client.get_last_quote,"Current best bid/ask"
+/v3/snapshot,stocks,Universal Snapshots,Y,list_universal_snapshots,2,Medium,0,polygon_client.list_universal_snapshots,"Cross-asset snapshots"
+/v2/snapshot/locale/us/markets/stocks/tickers,stocks,All Tickers Snapshot,Y,get_snapshot_all,2,Low,0,polygon_client.get_snapshot_all,"Full market snapshot"
+/v2/snapshot/locale/us/markets/stocks/{direction},stocks,Gainers/Losers,Y,get_snapshot_direction,2,Low,0,polygon_client.get_snapshot_direction,"Top market movers"
+/v2/snapshot/locale/us/markets/stocks/tickers/{stocksTicker},stocks,Single Ticker Snapshot,Y,get_snapshot_ticker,1,Low,0,polygon_client.get_snapshot_ticker,"Current state of one stock"
+/v1/marketstatus/upcoming,stocks,Market Holidays,Y,get_market_holidays,3,Low,0,polygon_client.get_market_holidays,"Trading calendar"
+/v1/marketstatus/now,stocks,Market Status,Y,get_market_status,3,Low,0,polygon_client.get_market_status,"Current market state"
+/v3/reference/tickers,stocks,List Tickers,Y,list_tickers,1,Low,0,polygon_client.list_tickers,"Search/discover tickers"
+/v3/reference/tickers/{ticker},stocks,Ticker Details,Y,get_ticker_details,1,Low,0,polygon_client.get_ticker_details,"Company information"
+/v2/reference/news,stocks,Ticker News,Y,list_ticker_news,2,Low,0,polygon_client.list_ticker_news,"Company news articles"
+/v3/reference/tickers/types,stocks,Ticker Types,Y,get_ticker_types,3,Low,0,polygon_client.get_ticker_types,"List ticker classifications"
+/v3/reference/splits,stocks,Stock Splits,Y,list_splits,2,Low,0,polygon_client.list_splits,"Historical stock splits"
+/v3/reference/dividends,stocks,Dividends,Y,list_dividends,2,Low,0,polygon_client.list_dividends,"Dividend declarations"
+/v3/reference/conditions,stocks,Condition Codes,Y,list_conditions,3,Low,0,polygon_client.list_conditions,"Trade/quote conditions"
+/v3/reference/exchanges,stocks,Exchanges,Y,get_exchanges,3,Low,0,polygon_client.get_exchanges,"Exchange listings"
+/vX/reference/financials,stocks,Stock Financials,Y,list_stock_financials,2,Medium,0,polygon_client.vx.list_stock_financials,"Financial statements"
+/v1/indicators/sma/{stockTicker},stocks,Simple Moving Average (SMA),N,,2,Low,2,polygon_client.get_sma,"Technical indicator - stocks only implemented currently"
+/v1/indicators/ema/{stockTicker},stocks,Exponential Moving Average (EMA),N,,2,Low,2,polygon_client.get_ema,"Technical indicator - stocks only"
+/v1/indicators/macd/{stockTicker},stocks,MACD,N,,2,Low,2,polygon_client.get_macd,"Technical indicator - stocks only"
+/v1/indicators/rsi/{stockTicker},stocks,RSI,N,,2,Low,2,polygon_client.get_rsi,"Technical indicator - stocks only"
+/v1/related-companies/{ticker},stocks,Related Companies,N,,1,Medium,3,polygon_client.get_related_companies,"Find similar/peer stocks - TIER 1 PRIORITY"
+/vX/reference/tickers/{id}/events,stocks,Ticker Events,N,,1,Medium,3,polygon_client.list_ticker_events,"Corporate events timeline - TIER 1 PRIORITY"
+/v1/reference/ticker-changes,stocks,Ticker Changes,N,,1,Medium,3,polygon_client.list_ticker_changes,"Symbol change history - TIER 1 PRIORITY"
+/vX/reference/ipos,stocks,List IPOs,Y,list_ipos,2,Low,0,polygon_client.vx.list_ipos,"IPO calendar"
+/vX/reference/short-interest,stocks,Short Interest,Y,list_short_interest,2,Low,0,polygon_client.list_short_interest,"Short interest data"
+/vX/reference/short-volume,stocks,Short Volume,Y,list_short_volume,2,Low,0,polygon_client.list_short_volume,"Daily short volume"
+/vX/reference/benzinga/analyst-insights,stocks,Benzinga Analyst Insights,Y,list_benzinga_analyst_insights,3,Low,0,polygon_client.list_benzinga_analyst_insights,"Analyst ratings/insights"
+/vX/reference/benzinga/consensus-ratings,stocks,Benzinga Consensus Ratings,Y,list_benzinga_consensus_ratings,3,Low,0,polygon_client.list_benzinga_consensus_ratings,"Consensus analyst ratings"
+
+# === OPTIONS (1/25 implemented = 4%) ===
+/v3/reference/options/contracts,options,List Options Contracts,N,,1,Medium,4,polygon_client.list_options_contracts,"Search options contracts - TIER 1 CRITICAL"
+/v3/reference/options/contracts/{options_ticker},options,Options Contract Details,N,,1,Medium,3,polygon_client.get_options_contract,"Contract specifications - TIER 1 CRITICAL"
+/v2/aggs/ticker/{optionsTicker}/range/{multiplier}/{timespan}/{from}/{to},options,Options Aggregate Bars,N,,2,Low,2,polygon_client.get_aggs,"Historical options premiums - use existing get_aggs"
+/v1/open-close/{optionsTicker}/{date},options,Options Daily Open/Close,N,,2,Low,1,polygon_client.get_daily_open_close_agg,"Daily options summary - use existing"
+/v2/aggs/ticker/{optionsTicker}/prev,options,Options Previous Close,N,,2,Low,1,polygon_client.get_previous_close_agg,"Prior day premium - use existing"
+/v3/snapshot/options/{underlyingAsset}/{optionContract},options,Option Snapshot,Y,get_snapshot_option,1,Medium,0,polygon_client.get_snapshot_option,"Single option state with Greeks - IMPLEMENTED"
+/v3/snapshot/options/{underlyingAsset},options,Options Chain Snapshot,N,,1,High,5,polygon_client.get_options_chain,"Full options chain - TIER 1 CRITICAL"
+/v3/trades/{optionsTicker},options,Options Trades,N,,2,Low,1,polygon_client.list_trades,"Tick-level options trades - use existing list_trades"
+/v2/last/trade/{optionsTicker},options,Options Last Trade,N,,2,Low,1,polygon_client.get_last_trade,"Most recent options trade - use existing"
+/v3/quotes/{optionsTicker},options,Options Quotes,N,,2,Low,1,polygon_client.list_quotes,"Historical options quotes - use existing list_quotes"
+/v1/indicators/sma/{optionsTicker},options,Options SMA,N,,2,Low,2,polygon_client.get_sma,"Technical indicator for options premiums"
+/v1/indicators/ema/{optionsTicker},options,Options EMA,N,,2,Low,2,polygon_client.get_ema,"Technical indicator for options premiums"
+/v1/indicators/macd/{optionsTicker},options,Options MACD,N,,2,Low,2,polygon_client.get_macd,"Technical indicator for options premiums"
+/v1/indicators/rsi/{optionsTicker},options,Options RSI,N,,2,Low,2,polygon_client.get_rsi,"Technical indicator for options premiums"
+/v3/reference/exchanges?asset_class=options,options,Options Exchanges,N,,3,Low,1,polygon_client.get_exchanges,"List options exchanges - filter existing"
+/v1/marketstatus/upcoming?market=options,options,Options Market Holidays,N,,3,Low,1,polygon_client.get_market_holidays,"Options calendar - filter existing"
+/v1/marketstatus/now,options,Options Market Status,N,,3,Low,1,polygon_client.get_market_status,"Current options market - use existing"
+/v3/reference/conditions?asset_class=options,options,Options Conditions,N,,3,Low,1,polygon_client.list_conditions,"Options condition codes - filter existing"
+/v2/reference/news?ticker={optionsTicker},options,Options News,N,,3,Low,1,polygon_client.list_ticker_news,"Options-related news - use existing"
+
+# === FUTURES (12/12 implemented = 100%) ===
+/v2/aggs/ticker/{futuresTicker}/range/{multiplier}/{timespan}/{from}/{to},futures,Futures Aggregate Bars,Y,list_futures_aggregates,2,Medium,0,polygon_client.list_futures_aggregates,"Historical futures bars"
+/v3/reference/futures/contracts,futures,List Futures Contracts,Y,list_futures_contracts,2,Medium,0,polygon_client.list_futures_contracts,"Search futures contracts"
+/v3/reference/futures/contracts/{futures_ticker},futures,Futures Contract Details,Y,get_futures_contract_details,2,Medium,0,polygon_client.get_futures_contract_details,"Contract specifications"
+/v3/reference/futures/products,futures,List Futures Products,Y,list_futures_products,2,Medium,0,polygon_client.list_futures_products,"Available futures products"
+/v3/reference/futures/products/{product_code},futures,Futures Product Details,Y,get_futures_product_details,2,Medium,0,polygon_client.get_futures_product_details,"Product information"
+/v3/quotes/{futuresTicker},futures,Futures Quotes,Y,list_futures_quotes,2,Medium,0,polygon_client.list_futures_quotes,"Historical futures quotes"
+/v3/trades/{futuresTicker},futures,Futures Trades,Y,list_futures_trades,2,Medium,0,polygon_client.list_futures_trades,"Tick-level futures trades"
+/v3/reference/futures/schedules,futures,All Futures Schedules,Y,list_futures_schedules,3,Medium,0,polygon_client.list_futures_schedules,"Trading schedules by date"
+/v3/reference/futures/schedules/{product_code},futures,Futures Product Schedule,Y,list_futures_schedules_by_product_code,3,Medium,0,polygon_client.list_futures_schedules_by_product_code,"Product-specific schedule"
+/v3/reference/futures/market-statuses,futures,Futures Market Statuses,Y,list_futures_market_statuses,3,Medium,0,polygon_client.list_futures_market_statuses,"Market status by product"
+/v2/snapshot/locale/global/markets/futures/tickers/{futuresTicker},futures,Futures Snapshot,Y,get_futures_snapshot,2,Medium,0,polygon_client.get_futures_snapshot,"Current futures state"
+/v3/snapshot?ticker.any_of={futures},futures,Futures Unified Snapshot,N,,2,Low,1,polygon_client.list_universal_snapshots,"Cross-asset snapshots - use existing"
+
+# === INDICES (0/15 implemented = 0%) ===
+/v3/reference/tickers?market=indices,indices,List Indices,N,,2,Low,1,polygon_client.list_tickers,"Search indices - filter existing list_tickers by market=indices"
+/v3/reference/tickers/{indexTicker},indices,Index Details,N,,2,Low,1,polygon_client.get_ticker_details,"Index information - use existing get_ticker_details"
+/v2/aggs/ticker/{indexTicker}/range/{multiplier}/{timespan}/{from}/{to},indices,Index Aggregate Bars,N,,2,Low,1,polygon_client.get_aggs,"Historical index values - use existing get_aggs"
+/v1/open-close/{indexTicker}/{date},indices,Index Daily Summary,N,,2,Low,1,polygon_client.get_daily_open_close_agg,"Daily index values - use existing"
+/v2/aggs/ticker/{indexTicker}/prev,indices,Index Previous Close,N,,2,Low,1,polygon_client.get_previous_close_agg,"Prior day index - use existing"
+/v3/snapshot/indices,indices,Indices Snapshot,N,,2,Medium,2,polygon_client.get_indices_snapshot,"Current index values - needs new method"
+/v3/snapshot?ticker.any_of={indices},indices,Indices Unified Snapshot,N,,2,Low,1,polygon_client.list_universal_snapshots,"Cross-asset snapshots - use existing"
+/v1/indicators/sma/{indexTicker},indices,Index SMA,N,,2,Low,2,polygon_client.get_sma,"Technical indicator for indices"
+/v1/indicators/ema/{indexTicker},indices,Index EMA,N,,2,Low,2,polygon_client.get_ema,"Technical indicator for indices"
+/v1/indicators/macd/{indexTicker},indices,Index MACD,N,,2,Low,2,polygon_client.get_macd,"Technical indicator for indices"
+/v1/indicators/rsi/{indexTicker},indices,Index RSI,N,,2,Low,2,polygon_client.get_rsi,"Technical indicator for indices"
+/v1/marketstatus/upcoming?market=indices,indices,Indices Market Holidays,N,,3,Low,1,polygon_client.get_market_holidays,"Index calendar - filter existing"
+/v1/marketstatus/now,indices,Indices Market Status,N,,3,Low,1,polygon_client.get_market_status,"Current index market - use existing"
+
+# === FOREX (3/20 implemented = 15%) ===
+/v3/reference/tickers?market=fx,forex,List Currency Pairs,N,,2,Low,1,polygon_client.list_tickers,"Search forex pairs - filter existing by market=fx"
+/v3/reference/tickers/{forexTicker},forex,Currency Pair Details,N,,2,Low,1,polygon_client.get_ticker_details,"Pair information - use existing"
+/v1/conversion/{from}/{to},forex,Currency Conversion,Y,get_real_time_currency_conversion,1,Medium,0,polygon_client.get_real_time_currency_conversion,"Real-time conversion - IMPLEMENTED"
+/v2/aggs/ticker/{forexTicker}/range/{multiplier}/{timespan}/{from}/{to},forex,Forex Aggregate Bars,N,,2,Low,1,polygon_client.get_aggs,"Historical forex rates - use existing get_aggs"
+/v2/aggs/grouped/locale/global/market/fx/{date},forex,Forex Grouped Daily,N,,2,Low,1,polygon_client.get_grouped_daily_aggs,"Market-wide forex - use existing"
+/v2/aggs/ticker/{forexTicker}/prev,forex,Forex Previous Close,N,,2,Low,1,polygon_client.get_previous_close_agg,"Prior day rate - use existing"
+/v2/snapshot/locale/global/markets/forex/tickers,forex,All Forex Tickers Snapshot,N,,2,Low,1,polygon_client.get_snapshot_all,"Full forex market - use existing"
+/v2/snapshot/locale/global/markets/forex/tickers/{forexTicker},forex,Single Forex Snapshot,N,,2,Low,1,polygon_client.get_snapshot_ticker,"Current forex pair - use existing"
+/v2/snapshot/locale/global/markets/forex/{direction},forex,Forex Gainers/Losers,N,,2,Low,1,polygon_client.get_snapshot_direction,"Currency movers - use existing"
+/v3/snapshot?ticker.any_of={forex},forex,Forex Unified Snapshot,N,,2,Low,1,polygon_client.list_universal_snapshots,"Cross-asset snapshots - use existing"
+/v3/quotes/{forexTicker},forex,Forex Quotes,N,,2,Low,1,polygon_client.list_quotes,"Historical forex quotes - use existing list_quotes"
+/v2/last/nbbo/{forexTicker},forex,Forex Last Quote,Y,get_last_forex_quote,2,Low,0,polygon_client.get_last_forex_quote,"Current forex quote - IMPLEMENTED"
+/v1/indicators/sma/{forexTicker},forex,Forex SMA,N,,2,Low,2,polygon_client.get_sma,"Technical indicator for forex"
+/v1/indicators/ema/{forexTicker},forex,Forex EMA,N,,2,Low,2,polygon_client.get_ema,"Technical indicator for forex"
+/v1/indicators/macd/{forexTicker},forex,Forex MACD,N,,2,Low,2,polygon_client.get_macd,"Technical indicator for forex"
+/v1/indicators/rsi/{forexTicker},forex,Forex RSI,N,,2,Low,2,polygon_client.get_rsi,"Technical indicator for forex"
+/v3/reference/exchanges?asset_class=fx,forex,Forex Exchanges,N,,3,Low,1,polygon_client.get_exchanges,"List forex exchanges - filter existing"
+/v1/marketstatus/upcoming?market=fx,forex,Forex Market Holidays,N,,3,Low,1,polygon_client.get_market_holidays,"Forex calendar - filter existing"
+/v1/marketstatus/now,forex,Forex Market Status,N,,3,Low,1,polygon_client.get_market_status,"Current forex market - use existing"
+
+# === CRYPTO (6/21 implemented = 29%) ===
+/v3/reference/tickers?market=crypto,crypto,List Crypto Pairs,N,,2,Low,1,polygon_client.list_tickers,"Search crypto pairs - filter existing by market=crypto"
+/v3/reference/tickers/{cryptoTicker},crypto,Crypto Pair Details,N,,2,Low,1,polygon_client.get_ticker_details,"Pair information - use existing"
+/v2/aggs/ticker/{cryptoTicker}/range/{multiplier}/{timespan}/{from}/{to},crypto,Crypto Aggregate Bars,N,,2,Low,1,polygon_client.get_aggs,"Historical crypto prices - use existing get_aggs"
+/v1/open-close/crypto/{from}/{to}/{date},crypto,Crypto Daily Summary,N,,2,Low,1,polygon_client.get_daily_open_close_agg,"Daily crypto summary - adapt existing"
+/v2/aggs/grouped/locale/global/market/crypto/{date},crypto,Crypto Grouped Daily,N,,2,Low,1,polygon_client.get_grouped_daily_aggs,"Market-wide crypto - use existing"
+/v2/aggs/ticker/{cryptoTicker}/prev,crypto,Crypto Previous Close,N,,2,Low,1,polygon_client.get_previous_close_agg,"Prior day crypto - use existing"
+/v2/snapshot/locale/global/markets/crypto/tickers,crypto,All Crypto Tickers Snapshot,Y,get_snapshot_all,2,Low,0,polygon_client.get_snapshot_all,"Full crypto market - IMPLEMENTED"
+/v2/snapshot/locale/global/markets/crypto/tickers/{cryptoTicker},crypto,Single Crypto Snapshot,Y,get_snapshot_ticker,2,Low,0,polygon_client.get_snapshot_ticker,"Current crypto pair - IMPLEMENTED"
+/v2/snapshot/locale/global/markets/crypto/{direction},crypto,Crypto Gainers/Losers,Y,get_snapshot_direction,2,Low,0,polygon_client.get_snapshot_direction,"Crypto movers - IMPLEMENTED"
+/v2/snapshot/locale/global/markets/crypto/direction,crypto,Crypto Market Direction,N,,2,Low,1,polygon_client.get_snapshot_direction,"Market breadth - adapt existing"
+/v2/snapshot/locale/global/markets/crypto/tickers/{ticker}/book,crypto,Crypto Order Book Snapshot,Y,get_snapshot_crypto_book,3,Medium,0,polygon_client.get_snapshot_crypto_book,"Order book - IMPLEMENTED"
+/v3/snapshot?ticker.any_of={crypto},crypto,Crypto Unified Snapshot,N,,2,Low,1,polygon_client.list_universal_snapshots,"Cross-asset snapshots - use existing"
+/v3/trades/{cryptoTicker},crypto,Crypto Trades,N,,2,Low,1,polygon_client.list_trades,"Tick-level crypto trades - use existing list_trades"
+/v2/last/trade/{cryptoTicker},crypto,Crypto Last Trade,Y,get_last_crypto_trade,2,Low,0,polygon_client.get_last_crypto_trade,"Most recent crypto trade - IMPLEMENTED"
+/v1/indicators/sma/{cryptoTicker},crypto,Crypto SMA,N,,2,Low,2,polygon_client.get_sma,"Technical indicator for crypto"
+/v1/indicators/ema/{cryptoTicker},crypto,Crypto EMA,N,,2,Low,2,polygon_client.get_ema,"Technical indicator for crypto"
+/v1/indicators/macd/{cryptoTicker},crypto,Crypto MACD,N,,2,Low,2,polygon_client.get_macd,"Technical indicator for crypto"
+/v1/indicators/rsi/{cryptoTicker},crypto,Crypto RSI,N,,2,Low,2,polygon_client.get_rsi,"Technical indicator for crypto"
+/v3/reference/exchanges?asset_class=crypto,crypto,Crypto Exchanges,N,,3,Low,1,polygon_client.get_exchanges,"List crypto exchanges - filter existing"
+/v1/marketstatus/upcoming?market=crypto,crypto,Crypto Market Holidays,N,,3,Low,1,polygon_client.get_market_holidays,"Crypto calendar - filter existing"
+/v1/marketstatus/now,crypto,Crypto Market Status,N,,3,Low,1,polygon_client.get_market_status,"Current crypto market - use existing"
+
+# === ECONOMY (2/3 implemented = 67%) ===
+/v1/indicators/treasury-yields,economy,Treasury Yields,Y,list_treasury_yields,2,Medium,0,polygon_client.list_treasury_yields,"Historical treasury yields"
+/v1/indicators/inflation/rates,economy,Inflation Rates,Y,list_inflation,2,Medium,0,polygon_client.list_inflation,"CPI/PCE inflation data"
+/v1/indicators/inflation/expectations,economy,Inflation Expectations,N,,3,Medium,3,polygon_client.list_inflation_expectations,"Survey-based expectations - needs SDK method verification"
+
+# === TIER 1 PRIORITY IMPLEMENTATION (Critical Missing Features) ===
+# These 12 endpoints should be implemented FIRST (36 hours estimated)
+# 1. /v3/reference/options/contracts - List Options Contracts (4 hrs)
+# 2. /v3/reference/options/contracts/{options_ticker} - Options Contract Details (3 hrs)
+# 3. /v3/snapshot/options/{underlyingAsset} - Options Chain Snapshot (5 hrs)
+# 4. /v1/related-companies/{ticker} - Related Companies (3 hrs)
+# 5. /vX/reference/tickers/{id}/events - Ticker Events (3 hrs)
+# 6. /v1/reference/ticker-changes - Ticker Changes (3 hrs)
+# Plus technical indicators for stocks (8 hrs for 4 indicators)
+
+# === TIER 2 PRIORITY IMPLEMENTATION (Important Features) ===
+# These 18 endpoints provide enhanced functionality (36 hours estimated)
+# - Technical indicators for indices, forex, crypto (12 indicators × 2 hrs = 24 hrs)
+# - Enhanced snapshots for indices (2 hrs)
+# - Additional aggregates adapters (minimal work, reuse existing)
+
+# === TIER 3 PRIORITY IMPLEMENTATION (Specialty Features) ===
+# These 10 endpoints are nice-to-have (15 hours estimated)
+# - Inflation expectations (3 hrs)
+# - Additional exchange/market status filters
+# - News endpoint variations
+
+# === IMPLEMENTATION NOTES ===
+# 1. Many endpoints can REUSE existing tools with different parameters
+# 2. Technical indicators need generic implementation (not asset-class specific)
+# 3. Options endpoints are the biggest gap (24/25 missing)
+# 4. Futures are complete (12/12)
+# 5. Focus on Tier 1 first for maximum user value
+# 6. CSV format chosen for token efficiency per requirements
