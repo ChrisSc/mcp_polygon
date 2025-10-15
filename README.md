@@ -12,9 +12,12 @@
 > [!IMPORTANT]
 > :test_tube: This project is experimental and could be subject to breaking changes.
 
+> [!NOTE]
+> This is a maintained fork of the official [Polygon.io MCP Server](https://github.com/polygon-io/mcp_polygon) with extended features and documentation. For the official Polygon.io version, visit the upstream repository.
+
 # Polygon.io MCP Server
 
- [![GitHub release](https://img.shields.io/github/v/release/polygon-io/mcp_polygon)](https://github.com/polygon-io/mcp_polygon/releases)
+ [![GitHub release](https://img.shields.io/github/v/release/ChrisSc/mcp_polygon)](https://github.com/ChrisSc/mcp_polygon/releases) [![Original by Polygon.io](https://img.shields.io/badge/original-Polygon.io-5F5CFF)](https://github.com/polygon-io/mcp_polygon)
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that provides access to [Polygon.io](https://polygon.io?utm_campaign=mcp&utm_medium=referral&utm_source=github) financial market data API through an LLM-friendly interface.
 
@@ -112,7 +115,7 @@ path to `uvx`.
 
 ```bash
 # Claude CLI
-claude mcp add polygon -e POLYGON_API_KEY=your_api_key_here -- uvx --from git+https://github.com/polygon-io/mcp_polygon@v0.5.0 mcp_polygon
+claude mcp add polygon -e POLYGON_API_KEY=your_api_key_here -- uvx --from git+https://github.com/ChrisSc/mcp_polygon@v1.0.0 mcp_polygon
 ```
 
 This command will install the MCP server in your current project.
@@ -143,7 +146,7 @@ Make sure you complete the various fields.
             "command": "<path_to_your_uvx_install>/uvx",
             "args": [
                 "--from",
-                "git+https://github.com/polygon-io/mcp_polygon@v0.5.0",
+                "git+https://github.com/ChrisSc/mcp_polygon@v1.0.0",
                 "mcp_polygon"
             ],
             "env": {
@@ -319,14 +322,68 @@ This will run `ruff format` and `ruff check --fix` to automatically format your 
 This MCP server interacts with Polygon.io's API to fetch market data. All data requests are subject to Polygon.io's privacy policy and terms of service.
 
 - **Polygon.io Privacy Policy**: https://polygon.io/legal/privacy
-- **Data Handling**: This server does not store or cache any user data. All requests are proxied directly to Polygon.io's API.
-- **API Key**: Your Polygon.io API key is used only for authenticating requests to their API.
+- **Data Handling**: This server is a stateless proxy - no user data or API keys are stored, logged, or cached. All requests are forwarded directly to Polygon.io's API.
+- **API Key Storage**: Your POLYGON_API_KEY is stored only in your local environment variables. It is never transmitted except to Polygon.io for authentication.
+- **Fork Relationship**: This repository (ChrisSc/mcp_polygon) is a fork of polygon-io/mcp_polygon. For Polygon.io's data policies, see their privacy policy above.
+
+## Fork Information
+
+This is a maintained fork of the official [Polygon.io MCP Server](https://github.com/polygon-io/mcp_polygon).
+
+**Fork Maintainer**: Chris Scragg (@ChrisSc)
+**Fork Repository**: https://github.com/ChrisSc/mcp_polygon
+**Original Author**: Polygon.io
+
+### Why This Fork?
+
+This fork provides:
+- Extended development and maintenance beyond the original scope
+- Additional documentation and implementation guides (CLAUDE.md, IMPLEMENTATION.md, ENDPOINT_PATTERNS.md, TESTING.md)
+- Production-ready deployment (Phase 3 complete: 99% API coverage, 81 tools)
+- Comprehensive development guides for contributors
+
+For the upstream Polygon.io version, see: https://github.com/polygon-io/mcp_polygon
+
+### Getting Support
+
+- **For fork-specific issues**: Open an issue at [ChrisSc/mcp_polygon](https://github.com/ChrisSc/mcp_polygon/issues)
+- **For Polygon.io API questions**: Contact support@polygon.io or visit [Polygon.io Documentation](https://polygon.io/docs)
+
+## Credits
+
+This MCP server was originally created by [Polygon.io](https://polygon.io) and is maintained as a fork by Chris Scragg (@ChrisSc).
+
+**Original Repository**: https://github.com/polygon-io/mcp_polygon
+**Original Authors**: Polygon.io team
+**Fork Maintainer**: Chris Scragg (@ChrisSc)
+**Contact**: clscragg@protonmail.com
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**Original Copyright**: Copyright (c) 2025 Polygon.io
+**Derivative Work**: This fork maintains the same MIT License
 
 ## Contributing
-If you found a bug or have an idea for a new feature, please first discuss it with us by submitting a new issue.
-We will respond to issues within at most 3 weeks.
-We're also open to volunteers if you want to submit a PR for any open issues but please discuss it with us beforehand.
-PRs that aren't linked to an existing issue or discussed with us ahead of time will generally be declined.
+
+This is a fork of the original Polygon.io MCP Server. Contributions are welcome!
+
+### How to Contribute
+
+1. **Fork-specific improvements**: Open an issue or PR at [ChrisSc/mcp_polygon](https://github.com/ChrisSc/mcp_polygon)
+2. **Upstream contributions**: Consider submitting to [polygon-io/mcp_polygon](https://github.com/polygon-io/mcp_polygon) if the change benefits the original project
+
+### Guidelines
+
+- Open an issue before starting work on major features
+- Include tests for new functionality
+- Follow the existing code style (run `just lint`)
+- Update documentation to reflect your changes
+
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Response Time**: Best effort, typically within 1-2 weeks for issues/PRs.
 
 <!----------------------------------------------------------------------------->
 [Link]: https://polygon.io/?utm_campaign=mcp&utm_medium=referral&utm_source=github 'Polygon.io Home Page'

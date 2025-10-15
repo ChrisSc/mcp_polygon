@@ -1,6 +1,6 @@
 [project]
 name = "mcp_polygon"
-version = "0.5.0"
+version = "1.0.0"
 description = "A MCP server project"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -11,6 +11,17 @@ dependencies = [
 [[project.authors]]
 name = "Polygon"
 email = "support@polygon.io"
+
+[[project.maintainers]]
+name = "Chris Scragg"
+email = "clscragg@protonmail.com"
+
+[project.urls]
+Homepage = "https://github.com/ChrisSc/mcp_polygon"
+Repository = "https://github.com/ChrisSc/mcp_polygon"
+"Original Repository" = "https://github.com/polygon-io/mcp_polygon"
+Documentation = "https://github.com/ChrisSc/mcp_polygon#readme"
+Issues = "https://github.com/ChrisSc/mcp_polygon/issues"
 
 [build-system]
 requires = [ "hatchling",]
