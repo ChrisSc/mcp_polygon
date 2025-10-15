@@ -12,7 +12,7 @@ Test Categories:
 import pytest
 import json
 import os
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, patch
 from mcp.server.fastmcp import FastMCP
 
 
@@ -24,6 +24,7 @@ class TestServerInitialization:
         """Verify server loads without errors."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             assert server.poly_mcp is not None
             assert isinstance(server.poly_mcp, FastMCP)
 
@@ -32,6 +33,7 @@ class TestServerInitialization:
         """Verify exactly 81 tools are registered (Phase 3 complete)."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             # Count registered tools
             tools = await server.poly_mcp.list_tools()
             tool_count = len(tools)
@@ -42,6 +44,7 @@ class TestServerInitialization:
         """Verify tools distributed correctly by asset class."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             tools = await server.poly_mcp.list_tools()
             tool_names = [tool.name for tool in tools]
 
@@ -61,6 +64,7 @@ class TestServerInitialization:
         """Verify Polygon RESTClient is initialized."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             assert server.polygon_client is not None
             assert "User-Agent" in server.polygon_client.headers
             assert "MCP-Polygon" in server.polygon_client.headers["User-Agent"]
@@ -75,6 +79,7 @@ class TestToolSignatures:
         """Verify get_aggs has correct parameters."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             tools = await server.poly_mcp.list_tools()
             get_aggs = next((t for t in tools if t.name == "get_aggs"), None)
 
@@ -85,29 +90,39 @@ class TestToolSignatures:
             input_schema = get_aggs.inputSchema
             assert "properties" in input_schema
             for param in required_params:
-                assert param in input_schema["properties"], f"Missing parameter: {param}"
+                assert param in input_schema["properties"], (
+                    f"Missing parameter: {param}"
+                )
 
     @pytest.mark.asyncio
     async def test_all_tools_have_docstrings(self):
         """Verify all tools are documented."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             tools = await server.poly_mcp.list_tools()
 
             for tool in tools:
-                assert tool.description is not None, f"Tool {tool.name} missing description"
-                assert len(tool.description) > 0, f"Tool {tool.name} has empty description"
+                assert tool.description is not None, (
+                    f"Tool {tool.name} missing description"
+                )
+                assert len(tool.description) > 0, (
+                    f"Tool {tool.name} has empty description"
+                )
 
     @pytest.mark.asyncio
     async def test_tools_have_readonly_hint(self):
         """Verify all tools have readOnlyHint annotation."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             tools = await server.poly_mcp.list_tools()
 
             for tool in tools:
                 # All our tools should be read-only
-                assert tool.annotations is not None, f"Tool {tool.name} missing annotations"
+                assert tool.annotations is not None, (
+                    f"Tool {tool.name} missing annotations"
+                )
 
 
 # Test 3: CSV Formatter Tests
@@ -121,7 +136,7 @@ class TestCSVFormatter:
         json_data = {
             "results": [
                 {"ticker": "AAPL", "price": 150.00, "volume": 1000000},
-                {"ticker": "GOOGL", "price": 2800.00, "volume": 500000}
+                {"ticker": "GOOGL", "price": 2800.00, "volume": 500000},
             ]
         }
 
@@ -143,10 +158,7 @@ class TestCSVFormatter:
             "results": [
                 {
                     "ticker": "AAPL",
-                    "details": {
-                        "name": "Apple Inc.",
-                        "market": "stocks"
-                    }
+                    "details": {"name": "Apple Inc.", "market": "stocks"},
                 }
             ]
         }
@@ -196,7 +208,7 @@ class TestCSVFormatter:
         nested = {
             "ticker": "AAPL",
             "tags": ["tech", "nasdaq"],
-            "info": {"sector": "Technology"}
+            "info": {"sector": "Technology"},
         }
 
         flattened = _flatten_dict(nested)
@@ -236,8 +248,8 @@ class TestErrorHandling:
                         "multiplier": 1,
                         "timespan": "day",
                         "from_": "2023-01-01",
-                        "to": "2023-01-31"
-                    }
+                        "to": "2023-01-31",
+                    },
                 )
 
                 # Verify error is returned as string
@@ -290,11 +302,11 @@ class TestMockAPIResponses:
                         "h": 151.00,
                         "l": 149.00,
                         "t": 1640995200000,
-                        "n": 5000
+                        "n": 5000,
                     }
                 ],
                 "ticker": "AAPL",
-                "status": "OK"
+                "status": "OK",
             }
 
             mock_response = self.create_mock_response(mock_data)
@@ -314,8 +326,8 @@ class TestMockAPIResponses:
                         "timespan": "day",
                         "from_": "2023-01-01",
                         "to": "2023-01-31",
-                        "limit": 10
-                    }
+                        "limit": 10,
+                    },
                 )
 
                 # Verify CSV output - result is a list, result[0] contains the data
@@ -346,10 +358,10 @@ class TestMockAPIResponses:
                         "x": 4,
                         "s": 100,
                         "p": 150.25,
-                        "c": [0, 12]
+                        "c": [0, 12],
                     }
                 ],
-                "status": "OK"
+                "status": "OK",
             }
 
             mock_response = self.create_mock_response(mock_data)
@@ -361,11 +373,7 @@ class TestMockAPIResponses:
 
             try:
                 result = await server.poly_mcp.call_tool(
-                    "list_trades",
-                    {
-                        "ticker": "AAPL",
-                        "limit": 10
-                    }
+                    "list_trades", {"ticker": "AAPL", "limit": 10}
                 )
 
                 result_text = str(result)
@@ -389,9 +397,9 @@ class TestMockAPIResponses:
                     "primary_exchange": "XNAS",
                     "type": "CS",
                     "active": True,
-                    "currency_name": "usd"
+                    "currency_name": "usd",
                 },
-                "status": "OK"
+                "status": "OK",
             }
 
             mock_response = self.create_mock_response(mock_data)
@@ -403,8 +411,7 @@ class TestMockAPIResponses:
 
             try:
                 result = await server.poly_mcp.call_tool(
-                    "get_ticker_details",
-                    {"ticker": "AAPL"}
+                    "get_ticker_details", {"ticker": "AAPL"}
                 )
 
                 result_text = str(result)
@@ -428,8 +435,8 @@ class TestMockAPIResponses:
                     "size": 0.5,
                     "exchange": 1,
                     "conditions": [0],
-                    "timestamp": 1640995200000
-                }
+                    "timestamp": 1640995200000,
+                },
             }
 
             mock_response = self.create_mock_response(mock_data)
@@ -441,8 +448,7 @@ class TestMockAPIResponses:
 
             try:
                 result = await server.poly_mcp.call_tool(
-                    "get_last_crypto_trade",
-                    {"from_": "BTC", "to": "USD"}
+                    "get_last_crypto_trade", {"from_": "BTC", "to": "USD"}
                 )
 
                 result_text = str(result)
@@ -468,9 +474,9 @@ class TestMockAPIResponses:
                         "high": 5.50,
                         "low": 4.90,
                         "open": 5.00,
-                        "volume": 1500
-                    }
-                }
+                        "volume": 1500,
+                    },
+                },
             }
 
             mock_response = self.create_mock_response(mock_data)
@@ -485,8 +491,8 @@ class TestMockAPIResponses:
                     "get_snapshot_option",
                     {
                         "underlying_asset": "AAPL",
-                        "option_contract": "O:AAPL230616C00150000"
-                    }
+                        "option_contract": "O:AAPL230616C00150000",
+                    },
                 )
 
                 result_text = str(result)
@@ -507,14 +513,14 @@ class TestIntegration:
 
             # Mock multiple API calls
             mock_aggs_response = Mock()
-            mock_aggs_response.data = json.dumps({
-                "results": [{"v": 1000000, "c": 150.00}]
-            }).encode("utf-8")
+            mock_aggs_response.data = json.dumps(
+                {"results": [{"v": 1000000, "c": 150.00}]}
+            ).encode("utf-8")
 
             mock_details_response = Mock()
-            mock_details_response.data = json.dumps({
-                "results": {"ticker": "AAPL", "name": "Apple Inc."}
-            }).encode("utf-8")
+            mock_details_response.data = json.dumps(
+                {"results": {"ticker": "AAPL", "name": "Apple Inc."}}
+            ).encode("utf-8")
 
             original_client = server.polygon_client
             mock_client = Mock()
@@ -532,13 +538,12 @@ class TestIntegration:
                         "timespan": "day",
                         "from_": "2023-01-01",
                         "to": "2023-01-31",
-                        "limit": 10
-                    }
+                        "limit": 10,
+                    },
                 )
 
                 details_result = await server.poly_mcp.call_tool(
-                    "get_ticker_details",
-                    {"ticker": "AAPL"}
+                    "get_ticker_details", {"ticker": "AAPL"}
                 )
 
                 # Verify both calls succeeded
@@ -556,11 +561,7 @@ class TestEdgeCases:
         """Test CSV formatter handles None values."""
         from mcp_polygon.formatters import json_to_csv
 
-        json_data = {
-            "results": [
-                {"ticker": "AAPL", "price": None, "volume": 1000000}
-            ]
-        }
+        json_data = {"results": [{"ticker": "AAPL", "price": None, "volume": 1000000}]}
 
         csv_output = json_to_csv(json_data)
         assert "ticker" in csv_output
@@ -571,9 +572,7 @@ class TestEdgeCases:
         from mcp_polygon.formatters import json_to_csv
 
         json_data = {
-            "results": [
-                {"ticker": "AAPL", "description": "Apple, Inc. - \"Innovation\""}
-            ]
+            "results": [{"ticker": "AAPL", "description": 'Apple, Inc. - "Innovation"'}]
         }
 
         csv_output = json_to_csv(json_data)
@@ -629,6 +628,7 @@ class TestPerformance:
         start_time = time.time()
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
+
             tools = await server.poly_mcp.list_tools()
         end_time = time.time()
 
@@ -646,7 +646,9 @@ class TestOptionsToolsPhase2:
     """Tests for Phase 2 Options tools."""
 
     @pytest.mark.asyncio
-    async def test_list_options_contracts_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_list_options_contracts_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test list_options_contracts with successful response."""
         mock_data = {
             "status": "OK",
@@ -656,18 +658,20 @@ class TestOptionsToolsPhase2:
                     "underlying_ticker": "SPY",
                     "expiration_date": "2025-12-19",
                     "strike_price": 650.0,
-                    "contract_type": "call"
+                    "contract_type": "call",
                 },
                 {
                     "ticker": "O:SPY251219P00650000",
                     "underlying_ticker": "SPY",
                     "expiration_date": "2025-12-19",
                     "strike_price": 650.0,
-                    "contract_type": "put"
-                }
-            ]
+                    "contract_type": "put",
+                },
+            ],
         }
-        mock_polygon_client.list_options_contracts.return_value = mock_response(mock_data)
+        mock_polygon_client.list_options_contracts.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -690,11 +694,13 @@ class TestOptionsToolsPhase2:
             order=None,
             sort=None,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_get_options_contract_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_options_contract_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_options_contract with successful response."""
         mock_data = {
             "status": "OK",
@@ -704,8 +710,8 @@ class TestOptionsToolsPhase2:
                 "expiration_date": "2025-12-19",
                 "strike_price": 650.0,
                 "contract_type": "call",
-                "exercise_style": "american"
-            }
+                "exercise_style": "american",
+            },
         }
         mock_polygon_client.get_options_contract.return_value = mock_response(mock_data)
 
@@ -722,13 +728,13 @@ class TestOptionsToolsPhase2:
         assert "O:SPY251219C00650000" in result
         assert "strike_price" in result
         mock_polygon_client.get_options_contract.assert_called_once_with(
-            ticker="O:SPY251219C00650000",
-            params=None,
-            raw=True
+            ticker="O:SPY251219C00650000", params=None, raw=True
         )
 
     @pytest.mark.asyncio
-    async def test_get_options_chain_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_options_chain_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_options_chain with successful response."""
         mock_data = {
             "status": "OK",
@@ -736,17 +742,19 @@ class TestOptionsToolsPhase2:
                 {
                     "ticker": "O:SPY251219C00600000",
                     "strike_price": 600.0,
-                    "contract_type": "call"
+                    "contract_type": "call",
                 },
                 {
                     "ticker": "O:SPY251219C00650000",
                     "strike_price": 650.0,
-                    "contract_type": "call"
-                }
-            ]
+                    "contract_type": "call",
+                },
+            ],
         }
         # Tool code calls list_snapshot_options_chain
-        mock_polygon_client.list_snapshot_options_chain.return_value = mock_response(mock_data)
+        mock_polygon_client.list_snapshot_options_chain.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -768,7 +776,7 @@ class TestOptionsToolsPhase2:
             order=None,
             sort=None,
             params=None,
-            raw=True
+            raw=True,
         )
 
 
@@ -776,17 +784,21 @@ class TestStocksToolsPhase2:
     """Tests for Phase 2 Stocks tools."""
 
     @pytest.mark.asyncio
-    async def test_get_related_companies_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_related_companies_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_related_companies with successful response."""
         mock_data = {
             "status": "OK",
             "results": [
                 {"ticker": "MSFT", "name": "Microsoft Corporation"},
                 {"ticker": "GOOGL", "name": "Alphabet Inc."},
-                {"ticker": "META", "name": "Meta Platforms Inc."}
-            ]
+                {"ticker": "META", "name": "Meta Platforms Inc."},
+            ],
         }
-        mock_polygon_client.get_related_companies.return_value = mock_response(mock_data)
+        mock_polygon_client.get_related_companies.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -801,13 +813,13 @@ class TestStocksToolsPhase2:
         assert "MSFT" in result
         assert "GOOGL" in result
         mock_polygon_client.get_related_companies.assert_called_once_with(
-            ticker="AAPL",
-            params=None,
-            raw=True
+            ticker="AAPL", params=None, raw=True
         )
 
     @pytest.mark.asyncio
-    async def test_get_ticker_changes_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_ticker_changes_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_ticker_changes with successful response."""
         mock_data = {
             "status": "OK",
@@ -816,9 +828,9 @@ class TestStocksToolsPhase2:
                     "ticker": "AAPL",
                     "old_ticker": "AAPL.OLD",
                     "change_date": "2023-01-15",
-                    "change_type": "merger"
+                    "change_type": "merger",
                 }
-            ]
+            ],
         }
         mock_polygon_client.list_ticker_changes.return_value = mock_response(mock_data)
 
@@ -836,15 +848,17 @@ class TestStocksToolsPhase2:
         mock_polygon_client.list_ticker_changes.assert_called_once_with(
             ticker="AAPL",
             date=None,
-            limit=10,
+            limit=100,
             sort=None,
             order=None,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_list_ticker_events_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_list_ticker_events_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test list_ticker_events with successful response."""
         mock_data = {
             "status": "OK",
@@ -852,14 +866,14 @@ class TestStocksToolsPhase2:
                 {
                     "event_type": "earnings",
                     "date": "2023-10-26",
-                    "description": "Q4 2023 Earnings Release"
+                    "description": "Q4 2023 Earnings Release",
                 },
                 {
                     "event_type": "dividend",
                     "date": "2023-11-15",
-                    "description": "Quarterly Dividend"
-                }
-            ]
+                    "description": "Quarterly Dividend",
+                },
+            ],
         }
         mock_polygon_client.get_ticker_events.return_value = mock_response(mock_data)
 
@@ -875,23 +889,22 @@ class TestStocksToolsPhase2:
         assert "event_type" in result
         assert "earnings" in result
         mock_polygon_client.get_ticker_events.assert_called_once_with(
-            ticker="AAPL",
-            types="earnings,dividend",
-            params=None,
-            raw=True
+            ticker="AAPL", types="earnings,dividend", params=None, raw=True
         )
 
     @pytest.mark.asyncio
-    async def test_get_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_sma_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_sma technical indicator."""
         mock_data = {
             "status": "OK",
             "results": {
                 "values": [
                     {"timestamp": 1640995200000, "value": 150.25},
-                    {"timestamp": 1641081600000, "value": 151.50}
+                    {"timestamp": 1641081600000, "value": 151.50},
                 ]
-            }
+            },
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
@@ -913,22 +926,24 @@ class TestStocksToolsPhase2:
             window=50,
             series_type=None,
             order=None,
-            limit=10,
+            limit=50,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_get_ema_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_ema_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_ema technical indicator."""
         mock_data = {
             "status": "OK",
             "results": {
                 "values": [
                     {"timestamp": 1640995200000, "value": 149.75},
-                    {"timestamp": 1641081600000, "value": 151.00}
+                    {"timestamp": 1641081600000, "value": 151.00},
                 ]
-            }
+            },
         }
         mock_polygon_client.get_ema.return_value = mock_response(mock_data)
 
@@ -945,15 +960,22 @@ class TestStocksToolsPhase2:
         mock_polygon_client.get_ema.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_macd_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_macd_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_macd technical indicator."""
         mock_data = {
             "status": "OK",
             "results": {
                 "values": [
-                    {"timestamp": 1640995200000, "value": 2.5, "signal": 2.3, "histogram": 0.2}
+                    {
+                        "timestamp": 1640995200000,
+                        "value": 2.5,
+                        "signal": 2.3,
+                        "histogram": 0.2,
+                    }
                 ]
-            }
+            },
         }
         mock_polygon_client.get_macd.return_value = mock_response(mock_data)
 
@@ -970,15 +992,13 @@ class TestStocksToolsPhase2:
         mock_polygon_client.get_macd.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_rsi_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_rsi_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_rsi technical indicator."""
         mock_data = {
             "status": "OK",
-            "results": {
-                "values": [
-                    {"timestamp": 1640995200000, "value": 65.5}
-                ]
-            }
+            "results": {"values": [{"timestamp": 1640995200000, "value": 65.5}]},
         }
         mock_polygon_client.get_rsi.return_value = mock_response(mock_data)
 
@@ -1000,9 +1020,9 @@ class TestStocksToolsPhase2:
             window=14,
             series_type=None,
             order=None,
-            limit=10,
+            limit=50,
             params=None,
-            raw=True
+            raw=True,
         )
 
 
@@ -1010,7 +1030,9 @@ class TestIndicesToolsPhase2:
     """Tests for Phase 2 Indices tools."""
 
     @pytest.mark.asyncio
-    async def test_get_indices_snapshot_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_indices_snapshot_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_indices_snapshot with successful response."""
         mock_data = {
             "status": "OK",
@@ -1023,16 +1045,16 @@ class TestIndicesToolsPhase2:
                     "session_close": 4510.75,
                     "prev_day_close": 4495.00,
                     "change": 15.75,
-                    "change_percent": 0.35
+                    "change_percent": 0.35,
                 },
                 {
                     "ticker": "I:DJI",
                     "session_open": 35000.00,
                     "session_high": 35200.00,
                     "session_low": 34900.00,
-                    "session_close": 35100.00
-                }
-            ]
+                    "session_close": 35100.00,
+                },
+            ],
         }
         mock_polygon_client.get_snapshot_indices.return_value = mock_response(mock_data)
 
@@ -1051,22 +1073,20 @@ class TestIndicesToolsPhase2:
         mock_polygon_client.get_snapshot_indices.assert_called_once_with(
             ticker_any_of="I:SPX,I:DJI",
             order=None,
-            limit=10,
+            limit=50,
             sort=None,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_get_index_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_index_sma_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_index_sma technical indicator for indices."""
         mock_data = {
             "status": "OK",
-            "results": {
-                "values": [
-                    {"timestamp": 1640995200000, "value": 4500.25}
-                ]
-            }
+            "results": {"values": [{"timestamp": 1640995200000, "value": 4500.25}]},
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
@@ -1088,9 +1108,9 @@ class TestIndicesToolsPhase2:
             window=200,
             series_type=None,
             order=None,
-            limit=10,
+            limit=50,
             params=None,
-            raw=True
+            raw=True,
         )
 
 
@@ -1098,15 +1118,13 @@ class TestTechnicalIndicatorsPhase2:
     """Tests for Phase 2 Technical Indicators across asset classes."""
 
     @pytest.mark.asyncio
-    async def test_get_options_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_options_sma_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_options_sma technical indicator."""
         mock_data = {
             "status": "OK",
-            "results": {
-                "values": [
-                    {"timestamp": 1640995200000, "value": 5.25}
-                ]
-            }
+            "results": {"values": [{"timestamp": 1640995200000, "value": 5.25}]},
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
@@ -1123,15 +1141,13 @@ class TestTechnicalIndicatorsPhase2:
         mock_polygon_client.get_sma.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_forex_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_forex_sma_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_forex_sma technical indicator."""
         mock_data = {
             "status": "OK",
-            "results": {
-                "values": [
-                    {"timestamp": 1640995200000, "value": 1.0850}
-                ]
-            }
+            "results": {"values": [{"timestamp": 1640995200000, "value": 1.0850}]},
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
@@ -1153,21 +1169,19 @@ class TestTechnicalIndicatorsPhase2:
             window=50,
             series_type=None,
             order=None,
-            limit=10,
+            limit=50,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_get_crypto_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_get_crypto_sma_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test get_crypto_sma technical indicator."""
         mock_data = {
             "status": "OK",
-            "results": {
-                "values": [
-                    {"timestamp": 1640995200000, "value": 45000.50}
-                ]
-            }
+            "results": {"values": [{"timestamp": 1640995200000, "value": 45000.50}]},
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
@@ -1188,7 +1202,9 @@ class TestEconomyToolsPhase2:
     """Tests for Phase 2 Economy tools."""
 
     @pytest.mark.asyncio
-    async def test_list_inflation_expectations_success(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_list_inflation_expectations_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test list_inflation_expectations with successful response."""
         mock_data = {
             "status": "OK",
@@ -1197,17 +1213,19 @@ class TestEconomyToolsPhase2:
                     "date": "2023-10-01",
                     "one_year": 3.2,
                     "three_year": 2.8,
-                    "five_year": 2.5
+                    "five_year": 2.5,
                 },
                 {
                     "date": "2023-11-01",
                     "one_year": 3.0,
                     "three_year": 2.7,
-                    "five_year": 2.4
-                }
-            ]
+                    "five_year": 2.4,
+                },
+            ],
         }
-        mock_polygon_client.list_inflation_expectations.return_value = mock_response(mock_data)
+        mock_polygon_client.list_inflation_expectations.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.economy import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1231,11 +1249,13 @@ class TestEconomyToolsPhase2:
             sort=None,
             order=None,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_list_inflation_expectations_method_not_found(self, mock_polygon_client, api_wrapper):
+    async def test_list_inflation_expectations_method_not_found(
+        self, mock_polygon_client, api_wrapper
+    ):
         """Test list_inflation_expectations when SDK method doesn't exist."""
         # Mock AttributeError to simulate SDK method not being available
         mock_polygon_client.list_inflation_expectations = None
@@ -1251,10 +1271,16 @@ class TestEconomyToolsPhase2:
         result = await tool.fn(date_gte="2023-10-01")
 
         # Verify error message indicates method not found or AttributeError
-        assert "Error" in result or "not found" in result.lower() or "attribute" in result.lower()
+        assert (
+            "Error" in result
+            or "not found" in result.lower()
+            or "attribute" in result.lower()
+        )
 
     @pytest.mark.asyncio
-    async def test_inflation_expectations_csv_format(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_inflation_expectations_csv_format(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test inflation expectations return properly formatted CSV."""
         mock_data = {
             "status": "OK",
@@ -1263,23 +1289,25 @@ class TestEconomyToolsPhase2:
                     "date": "2023-10-01",
                     "one_year": 3.2,
                     "three_year": 2.8,
-                    "five_year": 2.5
+                    "five_year": 2.5,
                 },
                 {
                     "date": "2023-11-01",
                     "one_year": 3.0,
                     "three_year": 2.7,
-                    "five_year": 2.4
+                    "five_year": 2.4,
                 },
                 {
                     "date": "2023-12-01",
                     "one_year": 2.9,
                     "three_year": 2.6,
-                    "five_year": 2.3
-                }
-            ]
+                    "five_year": 2.3,
+                },
+            ],
         }
-        mock_polygon_client.list_inflation_expectations.return_value = mock_response(mock_data)
+        mock_polygon_client.list_inflation_expectations.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.economy import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1308,10 +1336,13 @@ class TestErrorHandlingPhase2:
     """Tests for error handling in Phase 2 tools."""
 
     @pytest.mark.asyncio
-    async def test_list_options_contracts_404_error(self, mock_polygon_client, api_wrapper):
+    async def test_list_options_contracts_404_error(
+        self, mock_polygon_client, api_wrapper
+    ):
         """Test list_options_contracts handles 404 error."""
         # Mock an HTTP 404 error
         from unittest.mock import Mock
+
         error = Mock()
         error.response = Mock()
         error.response.status_code = 404
@@ -1349,10 +1380,13 @@ class TestErrorHandlingPhase2:
         assert "Error" in result or "API key" in result
 
     @pytest.mark.asyncio
-    async def test_get_indices_snapshot_429_error(self, mock_polygon_client, api_wrapper):
+    async def test_get_indices_snapshot_429_error(
+        self, mock_polygon_client, api_wrapper
+    ):
         """Test get_indices_snapshot handles 429 rate limit error."""
         # Mock an HTTP 429 error
         from unittest.mock import Mock
+
         error = Mock()
         error.response = Mock()
         error.response.status_code = 429
@@ -1374,7 +1408,9 @@ class TestCSVFormattingPhase2:
     """Tests for CSV output formatting in Phase 2 tools."""
 
     @pytest.mark.asyncio
-    async def test_options_chain_csv_format(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_options_chain_csv_format(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test options chain returns properly formatted CSV."""
         mock_data = {
             "status": "OK",
@@ -1384,18 +1420,20 @@ class TestCSVFormattingPhase2:
                     "underlying_ticker": "SPY",
                     "strike_price": 600.0,
                     "contract_type": "call",
-                    "expiration_date": "2025-12-19"
+                    "expiration_date": "2025-12-19",
                 },
                 {
                     "ticker": "O:SPY251219C00650000",
                     "underlying_ticker": "SPY",
                     "strike_price": 650.0,
                     "contract_type": "call",
-                    "expiration_date": "2025-12-19"
-                }
-            ]
+                    "expiration_date": "2025-12-19",
+                },
+            ],
         }
-        mock_polygon_client.list_snapshot_options_chain.return_value = mock_response(mock_data)
+        mock_polygon_client.list_snapshot_options_chain.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1413,7 +1451,9 @@ class TestCSVFormattingPhase2:
         assert "600" in result or "650" in result
 
     @pytest.mark.asyncio
-    async def test_technical_indicator_csv_format(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_technical_indicator_csv_format(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test technical indicators return properly formatted CSV."""
         mock_data = {
             "status": "OK",
@@ -1421,9 +1461,9 @@ class TestCSVFormattingPhase2:
                 "values": [
                     {"timestamp": 1640995200000, "value": 150.25},
                     {"timestamp": 1641081600000, "value": 151.50},
-                    {"timestamp": 1641168000000, "value": 152.75}
+                    {"timestamp": 1641168000000, "value": 152.75},
                 ]
-            }
+            },
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
@@ -1445,10 +1485,14 @@ class TestParameterValidationPhase2:
     """Tests for parameter validation in Phase 2 tools."""
 
     @pytest.mark.asyncio
-    async def test_options_contracts_with_filters(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_options_contracts_with_filters(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test list_options_contracts with multiple filters."""
         mock_data = {"status": "OK", "results": []}
-        mock_polygon_client.list_options_contracts.return_value = mock_response(mock_data)
+        mock_polygon_client.list_options_contracts.return_value = mock_response(
+            mock_data
+        )
 
         from src.mcp_polygon.tools.options import register_tools
         from mcp.server.fastmcp import FastMCP
@@ -1461,7 +1505,7 @@ class TestParameterValidationPhase2:
             underlying_ticker="SPY",
             contract_type="call",
             strike_price=650.0,
-            expiration_date="2025-12-19"
+            expiration_date="2025-12-19",
         )
 
         mock_polygon_client.list_options_contracts.assert_called_once_with(
@@ -1473,11 +1517,13 @@ class TestParameterValidationPhase2:
             order=None,
             sort=None,
             params=None,
-            raw=True
+            raw=True,
         )
 
     @pytest.mark.asyncio
-    async def test_technical_indicator_custom_window(self, mock_polygon_client, mock_response, api_wrapper):
+    async def test_technical_indicator_custom_window(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
         """Test technical indicators with custom window parameter."""
         mock_data = {"status": "OK", "results": {"values": []}}
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)

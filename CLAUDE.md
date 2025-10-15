@@ -314,6 +314,38 @@ The API wrapper eliminates code duplication and provides consistent, context-awa
 
 This pattern enables **1:1.14 coverage efficiency** (81 tools : 92 endpoints). See `ENDPOINT_PATTERNS.md` for complete architecture guide.
 
+### Default Limit Guidelines
+
+The `limit` parameter controls how many records are returned per API call. Higher limits reduce the number of API calls needed but may increase response time slightly.
+
+#### Default Limits by Tool Type
+
+| Tool Type              | Default Limit | Typical Use Case |
+|------------------------|---------------|------------------|
+| Aggregates (bars)      | 100           | 1-2 months daily, 2.5 hours minute bars |
+| Tick data (trades)     | 100           | Sample of recent activity |
+| Reference data (large) | 250           | Large catalogs (options contracts, tickers) |
+| Reference data (standard) | 100        | Corporate actions, financials, news |
+| Technical indicators   | 50            | Typical indicator window (20-50 periods) |
+| Economic data          | 10            | Sparse historical data (unchanged) |
+
+#### When to Increase Limits
+
+- **1 year of daily bars**: Use `limit=252` (trading days)
+- **1 day of minute bars**: Use `limit=390` (6.5 hours × 60 min)
+- **Full options chain**: Use `limit=500+` for liquid underlyings
+- **Historical technical indicators**: Use `limit=252` for annual analysis
+
+#### Performance Impact
+
+Increasing limits has minimal performance impact:
+- 10 records: ~0.3 ms
+- 100 records: ~2.3 ms
+- 1000 records: ~23 ms
+- 5000 records: ~111 ms
+
+**Recommendation**: Use higher limits to reduce API calls. The performance cost is negligible compared to network latency (100-300ms per request).
+
 ### Transport Configuration
 The server supports three MCP transports via `MCP_TRANSPORT` env var:
 - `stdio` (default) - Standard input/output

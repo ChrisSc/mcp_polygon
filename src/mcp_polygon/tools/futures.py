@@ -28,7 +28,7 @@ def register_tools(mcp, client, formatter):
         window_start_lte: Optional[str] = None,
         window_start_gt: Optional[str] = None,
         window_start_gte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -57,7 +57,7 @@ def register_tools(mcp, client, formatter):
         as_of: Optional[Union[str, date]] = None,
         active: Optional[str] = None,
         type: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 250,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -104,7 +104,7 @@ def register_tools(mcp, client, formatter):
         asset_class: Optional[str] = None,
         asset_sub_class: Optional[str] = None,
         type: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -158,7 +158,7 @@ def register_tools(mcp, client, formatter):
         session_end_date_lte: Optional[str] = None,
         session_end_date_gt: Optional[str] = None,
         session_end_date_gte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -196,7 +196,7 @@ def register_tools(mcp, client, formatter):
         session_end_date_lte: Optional[str] = None,
         session_end_date_gt: Optional[str] = None,
         session_end_date_gte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -225,7 +225,7 @@ def register_tools(mcp, client, formatter):
     async def list_futures_schedules(
         session_end_date: Optional[str] = None,
         trading_venue: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -249,7 +249,7 @@ def register_tools(mcp, client, formatter):
         session_end_date_lte: Optional[str] = None,
         session_end_date_gt: Optional[str] = None,
         session_end_date_gte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -273,7 +273,7 @@ def register_tools(mcp, client, formatter):
     async def list_futures_market_statuses(
         product_code_any_of: Optional[str] = None,
         product_code: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -303,7 +303,7 @@ def register_tools(mcp, client, formatter):
         product_code_gte: Optional[str] = None,
         product_code_lt: Optional[str] = None,
         product_code_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:

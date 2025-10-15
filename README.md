@@ -172,14 +172,37 @@ uv run entrypoint.py
 
 ## Usage Examples
 
-Once integrated, you can prompt Claude to access Polygon.io data:
+Once integrated, you can prompt Claude to access Polygon.io data with efficient defaults:
 
 ```
-Get the latest price for AAPL stock
+Get the last year of daily prices for AAPL stock
 Show me yesterday's trading volume for MSFT
 What were the biggest stock market gainers today?
 Get me the latest crypto market data for BTC-USD
 ```
+
+### Efficient Data Retrieval
+
+The server uses optimized default limits to minimize API calls:
+
+```python
+# Get 1 year of daily bars in a single API call (252 trading days)
+get_aggs("AAPL", 1, "day", "2024-01-01", "2024-12-31", limit=252)
+
+# Get 1 trading day of minute bars in a single call (390 minutes)
+get_aggs("AAPL", 1, "minute", "2024-10-15", "2024-10-15", limit=390)
+
+# Get full options chain for liquid underlying (500+ contracts)
+list_options_contracts("AAPL", contract_type="call", expiration_date="2025-01-17", limit=500)
+```
+
+Default limits are set based on typical use cases:
+- Aggregates/tick data: 100 records
+- Large catalogs: 250 records
+- Technical indicators: 50 periods
+- Economic data: 10 records
+
+Adjust the `limit` parameter for specific workflows. See [CLAUDE.md](CLAUDE.md) for detailed guidance.
 
 ## Available Tools
 
