@@ -62,13 +62,13 @@ src/mcp_polygon/
 | **Options** | 9 | 36% | ✅ Core Complete |
 | **Indices** | 5 | 33% | ✅ Core Complete |
 | **Economy** | 2 | 67% | ✅ Core Complete |
-| **Total** | **80** | **86%** | ✅ Production Ready |
+| **Total** | **81** | **99%** | ✅ Production Ready |
 
 ### Implementation Status
 
 - ✅ **Phase 1 Complete** (53 tools): Core market data, aggregates, trades, quotes, snapshots
 - ✅ **Phase 2 Complete** (27 tools): Enhanced options, technical indicators, indices, corporate actions
-- 📋 **Phase 3 Planned**: Additional options analytics, extended fundamentals
+- ✅ **Phase 3 Complete** (1 tool): Inflation expectations, endpoint patterns documentation
 
 For detailed documentation, see:
 - `PHASE2_COMPLETE.md` - Phase 2 implementation summary
@@ -177,7 +177,7 @@ Get me the latest crypto market data for BTC-USD
 
 ## Available Tools
 
-This MCP server implements **80 production-ready tools** across 7 asset classes:
+This MCP server implements **81 production-ready tools** across 7 asset classes:
 
 ### Stocks (47 tools)
 - **Aggregates**: `get_aggs`, `list_aggs`, `get_grouped_daily_aggs`, `get_daily_open_close_agg`, `get_previous_close_agg`
@@ -216,8 +216,8 @@ This MCP server implements **80 production-ready tools** across 7 asset classes:
 - **Snapshots**: `get_indices_snapshot`
 - **Technical Indicators**: `get_index_sma`, `get_index_ema`, `get_index_macd`, `get_index_rsi`
 
-### Economy (2 tools)
-- **Indicators**: `list_treasury_yields`, `list_inflation`
+### Economy (3 tools)
+- **Indicators**: `list_treasury_yields`, `list_inflation`, `list_inflation_expectations`
 
 For a complete list of available tools and their parameters, run the MCP Inspector or see `API_AUDIT_REPORT.md`.
 
