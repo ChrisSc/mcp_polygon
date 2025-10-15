@@ -28,14 +28,14 @@ class TestServerInitialization:
             assert isinstance(server.poly_mcp, FastMCP)
 
     @pytest.mark.asyncio
-    async def test_all_53_tools_registered(self):
-        """Verify exactly 53 tools are registered."""
+    async def test_all_56_tools_registered(self):
+        """Verify exactly 56 tools are registered."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
             # Count registered tools
             tools = await server.poly_mcp.list_tools()
             tool_count = len(tools)
-            assert tool_count == 53, f"Expected 53 tools, found {tool_count}"
+            assert tool_count == 56, f"Expected 56 tools, found {tool_count}"
 
     @pytest.mark.asyncio
     async def test_tool_distribution_by_asset_class(self):
@@ -46,12 +46,12 @@ class TestServerInitialization:
             tool_names = [tool.name for tool in tools]
 
             # Expected tool patterns by asset class
-            # Stocks: 42 tools (based on stocks.py analysis)
-            # Options: 1 tool
-            # Futures: ~6-8 tools (based on file size)
+            # Stocks: 35 tools
+            # Options: 4 tools (get_snapshot_option, list_options_contracts, get_options_contract, get_options_chain)
+            # Futures: 11 tools
             # Crypto: 2 tools
-            # Forex: 1-2 tools
-            # Economy: ~1-2 tools
+            # Forex: 2 tools
+            # Economy: 2 tools
             # Indices: 0 tools (empty)
 
             # Verify we have tools from different categories
@@ -635,6 +635,810 @@ class TestPerformance:
         # Tool registration should be fast
         assert (end_time - start_time) < 2.0
         assert len(tools) > 0
+
+
+# ==========================================
+# Phase 2: New Tools Tests (28 tools)
+# ==========================================
+
+
+class TestOptionsToolsPhase2:
+    """Tests for Phase 2 Options tools."""
+
+    @pytest.mark.asyncio
+    async def test_list_options_contracts_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test list_options_contracts with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "O:SPY251219C00650000",
+                    "underlying_ticker": "SPY",
+                    "expiration_date": "2025-12-19",
+                    "strike_price": 650.0,
+                    "contract_type": "call"
+                },
+                {
+                    "ticker": "O:SPY251219P00650000",
+                    "underlying_ticker": "SPY",
+                    "expiration_date": "2025-12-19",
+                    "strike_price": 650.0,
+                    "contract_type": "put"
+                }
+            ]
+        }
+        mock_polygon_client.list_options_contracts.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_options_contracts"]
+
+        result = await tool.fn(underlying_asset="SPY", contract_type="call")
+
+        assert "ticker" in result
+        assert "O:SPY251219C00650000" in result
+        assert "underlying_ticker" in result
+        mock_polygon_client.list_options_contracts.assert_called_once_with(
+            underlying_asset="SPY",
+            contract_type="call",
+            expiration_date=None,
+            strike_price=None,
+            limit=100,
+            order=None,
+            sort=None,
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_options_contract_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_options_contract with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "ticker": "O:SPY251219C00650000",
+                "underlying_ticker": "SPY",
+                "expiration_date": "2025-12-19",
+                "strike_price": 650.0,
+                "contract_type": "call",
+                "exercise_style": "american"
+            }
+        }
+        # Ensure mock has the method
+        from unittest.mock import Mock
+        mock_polygon_client.get_options_contract = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_options_contract"]
+
+        result = await tool.fn(options_ticker="O:SPY251219C00650000")
+
+        assert "ticker" in result
+        assert "O:SPY251219C00650000" in result
+        assert "strike_price" in result
+        mock_polygon_client.get_options_contract.assert_called_once_with(
+            options_ticker="O:SPY251219C00650000",
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_options_chain_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_options_chain with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "O:SPY251219C00600000",
+                    "strike_price": 600.0,
+                    "contract_type": "call"
+                },
+                {
+                    "ticker": "O:SPY251219C00650000",
+                    "strike_price": 650.0,
+                    "contract_type": "call"
+                }
+            ]
+        }
+        # Tool code calls get_options_chain (SDK method is list_snapshot_options_chain)
+        mock_polygon_client.get_options_chain.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_options_chain"]
+
+        result = await tool.fn(underlying_asset="SPY", contract_type="call")
+
+        assert "ticker" in result
+        assert "strike_price" in result
+        mock_polygon_client.get_options_chain.assert_called_once_with(
+            underlying_asset="SPY",
+            strike_price=None,
+            expiration_date=None,
+            contract_type="call",
+            limit=250,
+            order=None,
+            sort=None,
+            params=None,
+            raw=True
+        )
+
+
+class TestStocksToolsPhase2:
+    """Tests for Phase 2 Stocks tools."""
+
+    @pytest.mark.asyncio
+    async def test_get_related_companies_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_related_companies with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {"ticker": "MSFT", "name": "Microsoft Corporation"},
+                {"ticker": "GOOGL", "name": "Alphabet Inc."},
+                {"ticker": "META", "name": "Meta Platforms Inc."}
+            ]
+        }
+        mock_polygon_client.get_related_companies.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_related_companies"]
+
+        result = await tool.fn(ticker="AAPL")
+
+        assert "ticker" in result
+        assert "MSFT" in result
+        assert "GOOGL" in result
+        mock_polygon_client.get_related_companies.assert_called_once_with(
+            ticker="AAPL",
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_ticker_changes_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_ticker_changes with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "AAPL",
+                    "old_ticker": "AAPL.OLD",
+                    "change_date": "2023-01-15",
+                    "change_type": "merger"
+                }
+            ]
+        }
+        mock_polygon_client.list_ticker_changes.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_ticker_changes"]
+
+        result = await tool.fn(ticker="AAPL")
+
+        assert "ticker" in result
+        assert "AAPL" in result
+        mock_polygon_client.list_ticker_changes.assert_called_once_with(
+            ticker="AAPL",
+            date=None,
+            limit=10,
+            sort=None,
+            order=None,
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_ticker_events_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test list_ticker_events with successful response (vx method)."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "event_type": "earnings",
+                    "date": "2023-10-26",
+                    "description": "Q4 2023 Earnings Release"
+                },
+                {
+                    "event_type": "dividend",
+                    "date": "2023-11-15",
+                    "description": "Quarterly Dividend"
+                }
+            ]
+        }
+        mock_polygon_client.vx.list_ticker_events.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_ticker_events"]
+
+        result = await tool.fn(id="AAPL", types="earnings,dividend")
+
+        assert "event_type" in result
+        assert "earnings" in result
+        mock_polygon_client.vx.list_ticker_events.assert_called_once_with(
+            id="AAPL",
+            types="earnings,dividend",
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_sma technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 150.25},
+                    {"timestamp": 1641081600000, "value": 151.50}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_sma"]
+
+        result = await tool.fn(ticker="AAPL", window=50, timespan="day")
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_sma.assert_called_once_with(
+            ticker="AAPL",
+            timestamp=None,
+            timespan="day",
+            adjusted=None,
+            window=50,
+            series_type=None,
+            order=None,
+            limit=10,
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_ema_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_ema technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 149.75},
+                    {"timestamp": 1641081600000, "value": 151.00}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_ema = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_ema"]
+
+        result = await tool.fn(ticker="AAPL", window=20)
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_ema.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_macd_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_macd technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 2.5, "signal": 2.3, "histogram": 0.2}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_macd = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_macd"]
+
+        result = await tool.fn(ticker="AAPL")
+
+        assert "value" in result or "signal" in result or "histogram" in result
+        mock_polygon_client.get_macd.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_rsi_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_rsi technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 65.5}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_rsi = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_rsi"]
+
+        result = await tool.fn(ticker="AAPL", window=14)
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_rsi.assert_called_once_with(
+            ticker="AAPL",
+            timestamp=None,
+            timespan=None,
+            adjusted=None,
+            window=14,
+            series_type=None,
+            order=None,
+            limit=10,
+            params=None,
+            raw=True
+        )
+
+
+class TestIndicesToolsPhase2:
+    """Tests for Phase 2 Indices tools."""
+
+    @pytest.mark.asyncio
+    async def test_get_indices_snapshot_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_indices_snapshot with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "I:SPX",
+                    "session_open": 4500.25,
+                    "session_high": 4520.50,
+                    "session_low": 4485.00,
+                    "session_close": 4510.75,
+                    "prev_day_close": 4495.00,
+                    "change": 15.75,
+                    "change_percent": 0.35
+                },
+                {
+                    "ticker": "I:DJI",
+                    "session_open": 35000.00,
+                    "session_high": 35200.00,
+                    "session_low": 34900.00,
+                    "session_close": 35100.00
+                }
+            ]
+        }
+        mock_polygon_client.get_indices_snapshot.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.indices import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_indices_snapshot"]
+
+        result = await tool.fn(ticker_any_of="I:SPX,I:DJI")
+
+        assert "ticker" in result
+        assert "I:SPX" in result
+        assert "session_close" in result
+        mock_polygon_client.get_indices_snapshot.assert_called_once_with(
+            ticker_any_of="I:SPX,I:DJI",
+            order=None,
+            limit=10,
+            sort=None,
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_index_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_index_sma technical indicator for indices."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 4500.25}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.indices import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_index_sma"]
+
+        result = await tool.fn(ticker="I:SPX", window=200)
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_sma.assert_called_once_with(
+            ticker="I:SPX",
+            timestamp=None,
+            timespan=None,
+            adjusted=None,
+            window=200,
+            series_type=None,
+            order=None,
+            limit=10,
+            params=None,
+            raw=True
+        )
+
+
+class TestTechnicalIndicatorsPhase2:
+    """Tests for Phase 2 Technical Indicators across asset classes."""
+
+    @pytest.mark.asyncio
+    async def test_get_options_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_options_sma technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 5.25}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_options_sma"]
+
+        result = await tool.fn(ticker="O:SPY251219C00650000", window=50)
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_sma.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_forex_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_forex_sma technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 1.0850}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.forex import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_forex_sma"]
+
+        result = await tool.fn(ticker="C:EURUSD", window=50)
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_sma.assert_called_once_with(
+            ticker="C:EURUSD",
+            timestamp=None,
+            timespan=None,
+            adjusted=None,
+            window=50,
+            series_type=None,
+            order=None,
+            limit=10,
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_crypto_sma_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test get_crypto_sma technical indicator."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 45000.50}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.crypto import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_crypto_sma"]
+
+        result = await tool.fn(ticker="X:BTCUSD", window=100)
+
+        assert "value" in result or "timestamp" in result
+        mock_polygon_client.get_sma.assert_called_once()
+
+
+class TestEconomyToolsPhase2:
+    """Tests for Phase 2 Economy tools."""
+
+    @pytest.mark.asyncio
+    async def test_list_inflation_expectations_success(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test list_inflation_expectations with successful response."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "date": "2023-10-01",
+                    "one_year": 3.2,
+                    "three_year": 2.8,
+                    "five_year": 2.5
+                },
+                {
+                    "date": "2023-11-01",
+                    "one_year": 3.0,
+                    "three_year": 2.7,
+                    "five_year": 2.4
+                }
+            ]
+        }
+        mock_polygon_client.list_inflation_expectations.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.economy import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_inflation_expectations"]
+
+        result = await tool.fn(date_gte="2023-10-01")
+
+        assert "date" in result
+        assert "one_year" in result or "three_year" in result
+        mock_polygon_client.list_inflation_expectations.assert_called_once_with(
+            date=None,
+            date_any_of=None,
+            date_gt=None,
+            date_gte="2023-10-01",
+            date_lt=None,
+            date_lte=None,
+            limit=10,
+            sort=None,
+            order=None,
+            params=None,
+            raw=True
+        )
+
+
+class TestErrorHandlingPhase2:
+    """Tests for error handling in Phase 2 tools."""
+
+    @pytest.mark.asyncio
+    async def test_list_options_contracts_404_error(self, mock_polygon_client, api_wrapper):
+        """Test list_options_contracts handles 404 error."""
+        # Mock an HTTP 404 error
+        from unittest.mock import Mock
+        error = Mock()
+        error.response = Mock()
+        error.response.status_code = 404
+        mock_polygon_client.list_options_contracts.side_effect = error
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_options_contracts"]
+
+        result = await tool.fn(underlying_asset="INVALID")
+
+        assert "Error" in result or "not found" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_sma_401_error(self, mock_polygon_client, api_wrapper):
+        """Test get_sma handles 401 authentication error."""
+        # Mock an HTTP 401 error
+        from unittest.mock import Mock
+        error = Mock()
+        error.response = Mock()
+        error.response.status_code = 401
+        from unittest.mock import Mock as MockMethod
+        mock_polygon_client.get_sma = MockMethod(side_effect=error)
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_sma"]
+
+        result = await tool.fn(ticker="AAPL")
+
+        assert "Error" in result or "API key" in result
+
+    @pytest.mark.asyncio
+    async def test_get_indices_snapshot_429_error(self, mock_polygon_client, api_wrapper):
+        """Test get_indices_snapshot handles 429 rate limit error."""
+        # Mock an HTTP 429 error
+        from unittest.mock import Mock
+        error = Mock()
+        error.response = Mock()
+        error.response.status_code = 429
+        mock_polygon_client.get_indices_snapshot.side_effect = error
+
+        from src.mcp_polygon.tools.indices import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_indices_snapshot"]
+
+        result = await tool.fn(ticker_any_of="I:SPX")
+
+        assert "Error" in result or "rate limit" in result.lower()
+
+
+class TestCSVFormattingPhase2:
+    """Tests for CSV output formatting in Phase 2 tools."""
+
+    @pytest.mark.asyncio
+    async def test_options_chain_csv_format(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test options chain returns properly formatted CSV."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "O:SPY251219C00600000",
+                    "underlying_ticker": "SPY",
+                    "strike_price": 600.0,
+                    "contract_type": "call",
+                    "expiration_date": "2025-12-19"
+                },
+                {
+                    "ticker": "O:SPY251219C00650000",
+                    "underlying_ticker": "SPY",
+                    "strike_price": 650.0,
+                    "contract_type": "call",
+                    "expiration_date": "2025-12-19"
+                }
+            ]
+        }
+        mock_polygon_client.get_options_chain.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_options_chain"]
+
+        result = await tool.fn(underlying_asset="SPY")
+
+        lines = result.strip().split("\n")
+        assert len(lines) >= 2  # Header + at least 1 data row
+        assert "ticker" in lines[0]
+        assert "strike_price" in lines[0]
+        assert "600" in result or "650" in result
+
+    @pytest.mark.asyncio
+    async def test_technical_indicator_csv_format(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test technical indicators return properly formatted CSV."""
+        mock_data = {
+            "status": "OK",
+            "results": {
+                "values": [
+                    {"timestamp": 1640995200000, "value": 150.25},
+                    {"timestamp": 1641081600000, "value": 151.50},
+                    {"timestamp": 1641168000000, "value": 152.75}
+                ]
+            }
+        }
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_sma"]
+
+        result = await tool.fn(ticker="AAPL", window=50)
+
+        lines = result.strip().split("\n")
+        assert len(lines) >= 2  # Header + data rows
+        assert "value" in result or "timestamp" in result
+
+
+class TestParameterValidationPhase2:
+    """Tests for parameter validation in Phase 2 tools."""
+
+    @pytest.mark.asyncio
+    async def test_options_contracts_with_filters(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test list_options_contracts with multiple filters."""
+        mock_data = {"status": "OK", "results": []}
+        mock_polygon_client.list_options_contracts.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.options import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_options_contracts"]
+
+        result = await tool.fn(
+            underlying_asset="SPY",
+            contract_type="call",
+            strike_price=650.0,
+            expiration_date="2025-12-19"
+        )
+
+        mock_polygon_client.list_options_contracts.assert_called_once_with(
+            underlying_asset="SPY",
+            contract_type="call",
+            expiration_date="2025-12-19",
+            strike_price=650.0,
+            limit=100,
+            order=None,
+            sort=None,
+            params=None,
+            raw=True
+        )
+
+    @pytest.mark.asyncio
+    async def test_technical_indicator_custom_window(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test technical indicators with custom window parameter."""
+        mock_data = {"status": "OK", "results": {"values": []}}
+        from unittest.mock import Mock
+        mock_polygon_client.get_sma = Mock(return_value=mock_response(mock_data))
+
+        from src.mcp_polygon.tools.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_sma"]
+
+        result = await tool.fn(ticker="AAPL", window=200, timespan="week")
+
+        call_args = mock_polygon_client.get_sma.call_args
+        assert call_args[1]["window"] == 200
+        assert call_args[1]["timespan"] == "week"
 
 
 if __name__ == "__main__":

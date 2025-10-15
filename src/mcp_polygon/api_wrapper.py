@@ -139,8 +139,25 @@ class PolygonAPIWrapper:
             # Make API call with raw=True to get binary response
             results = method(**kwargs, raw=True)
 
-            # Decode binary response and format as CSV
-            return self.formatter(results.data.decode("utf-8"))
+            # Handle different response types from SDK
+            if hasattr(results, 'data'):
+                # Binary response (most endpoints)
+                json_data = results.data.decode("utf-8")
+            elif hasattr(results, '__dict__'):
+                # Object response (technical indicators, related companies)
+                import json
+                # Convert object to dict, handling nested objects
+                json_data = json.dumps(results, default=lambda o: o.__dict__ if hasattr(o, '__dict__') else str(o))
+            elif isinstance(results, list):
+                # List response
+                import json
+                json_data = json.dumps([item.__dict__ if hasattr(item, '__dict__') else item for item in results])
+            else:
+                # Fallback to string conversion
+                json_data = str(results)
+
+            # Format as CSV
+            return self.formatter(json_data)
 
         except AttributeError as e:
             # Method doesn't exist on client
