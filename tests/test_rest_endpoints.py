@@ -28,14 +28,14 @@ class TestServerInitialization:
             assert isinstance(server.poly_mcp, FastMCP)
 
     @pytest.mark.asyncio
-    async def test_all_56_tools_registered(self):
-        """Verify exactly 56 tools are registered."""
+    async def test_all_81_tools_registered(self):
+        """Verify exactly 81 tools are registered (Phase 3 complete)."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
             # Count registered tools
             tools = await server.poly_mcp.list_tools()
             tool_count = len(tools)
-            assert tool_count == 56, f"Expected 56 tools, found {tool_count}"
+            assert tool_count == 81, f"Expected 81 tools, found {tool_count}"
 
     @pytest.mark.asyncio
     async def test_tool_distribution_by_asset_class(self):
@@ -1243,6 +1243,75 @@ class TestEconomyToolsPhase2:
             params=None,
             raw=True
         )
+
+    @pytest.mark.asyncio
+    async def test_list_inflation_expectations_method_not_found(self, mock_polygon_client, api_wrapper):
+        """Test list_inflation_expectations when SDK method doesn't exist."""
+        # Mock AttributeError to simulate SDK method not being available
+        mock_polygon_client.list_inflation_expectations = None
+        del mock_polygon_client.list_inflation_expectations
+
+        from src.mcp_polygon.tools.economy import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_inflation_expectations"]
+
+        result = await tool.fn(date_gte="2023-10-01")
+
+        # Verify error message indicates method not found or AttributeError
+        assert "Error" in result or "not found" in result.lower() or "attribute" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_inflation_expectations_csv_format(self, mock_polygon_client, mock_response, api_wrapper):
+        """Test inflation expectations return properly formatted CSV."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "date": "2023-10-01",
+                    "one_year": 3.2,
+                    "three_year": 2.8,
+                    "five_year": 2.5
+                },
+                {
+                    "date": "2023-11-01",
+                    "one_year": 3.0,
+                    "three_year": 2.7,
+                    "five_year": 2.4
+                },
+                {
+                    "date": "2023-12-01",
+                    "one_year": 2.9,
+                    "three_year": 2.6,
+                    "five_year": 2.3
+                }
+            ]
+        }
+        mock_polygon_client.list_inflation_expectations.return_value = mock_response(mock_data)
+
+        from src.mcp_polygon.tools.economy import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_inflation_expectations"]
+
+        result = await tool.fn(date_gte="2023-10-01", limit=10)
+
+        # Verify CSV format
+        lines = result.strip().split("\n")
+        assert len(lines) >= 2  # Header + at least 1 data row
+
+        # Verify header contains expected columns
+        header = lines[0]
+        assert "date" in header
+        assert "one_year" in header or "three_year" in header or "five_year" in header
+
+        # Verify data rows contain actual values
+        assert "2023-10-01" in result or "2023-11-01" in result
+        assert "3.2" in result or "3.0" in result or "2.8" in result
 
 
 class TestErrorHandlingPhase2:
