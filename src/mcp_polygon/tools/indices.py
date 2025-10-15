@@ -23,7 +23,7 @@ def register_tools(mcp, client, formatter):
     async def get_indices_snapshot(
         ticker_any_of: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -63,7 +63,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 50,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Simple Moving Average (SMA) technical indicator for an index ticker (format: I:SPX)."""
@@ -89,7 +89,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 50,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Exponential Moving Average (EMA) technical indicator for an index ticker (format: I:SPX)."""
@@ -117,7 +117,7 @@ def register_tools(mcp, client, formatter):
         signal_window: Optional[int] = None,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Moving Average Convergence/Divergence (MACD) technical indicator for an index ticker (format: I:SPX)."""
@@ -145,7 +145,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 14,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Relative Strength Index (RSI) technical indicator for an index ticker (format: I:SPX)."""

@@ -64,7 +64,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 50,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Simple Moving Average (SMA) technical indicator for a forex ticker (format: C:EURUSD)."""
@@ -90,7 +90,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 50,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Exponential Moving Average (EMA) technical indicator for a forex ticker (format: C:EURUSD)."""
@@ -118,7 +118,7 @@ def register_tools(mcp, client, formatter):
         signal_window: Optional[int] = None,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Moving Average Convergence/Divergence (MACD) technical indicator for a forex ticker (format: C:EURUSD)."""
@@ -146,7 +146,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 14,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Relative Strength Index (RSI) technical indicator for a forex ticker (format: C:EURUSD)."""

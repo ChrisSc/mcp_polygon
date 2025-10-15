@@ -124,4 +124,3 @@ def register_tools(mcp, client, formatter):
             order=order,
             params=params,
         )
-

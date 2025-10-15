@@ -42,39 +42,45 @@ src/mcp_polygon/
 ├── api_wrapper.py     # Centralized API error handling and response formatting
 ├── formatters.py      # CSV output formatting utilities
 └── tools/             # Tool implementations by asset class
-    ├── stocks.py      # Stock market tools (47 tools)
+    ├── stocks.py      # Stock market tools (42 tools)
     ├── futures.py     # Futures market tools (11 tools)
-    ├── crypto.py      # Cryptocurrency tools (7 tools)
+    ├── crypto.py      # Cryptocurrency tools (6 tools)
     ├── forex.py       # Forex market tools (6 tools)
-    ├── options.py     # Options market tools (9 tools)
+    ├── options.py     # Options market tools (8 tools)
     ├── indices.py     # Market indices tools (5 tools)
-    └── economy.py     # Economic indicators (2 tools)
+    └── economy.py     # Economic indicators (3 tools)
 ```
 
 ### Tool Distribution
 
 | Asset Class | Tools | Coverage | Status |
 |-------------|-------|----------|--------|
-| **Stocks** | 47 | 100% | ✅ Complete |
+| **Stocks** | 42 | 100% | ✅ Complete |
 | **Futures** | 11 | 100% | ✅ Complete |
-| **Crypto** | 7 | 100% | ✅ Complete |
-| **Forex** | 6 | 92% | ✅ Complete |
-| **Options** | 9 | 36% | ✅ Core Complete |
-| **Indices** | 5 | 33% | ✅ Core Complete |
-| **Economy** | 2 | 67% | ✅ Core Complete |
+| **Crypto** | 6 | 100% | ✅ Complete |
+| **Forex** | 6 | 100% | ✅ Complete |
+| **Options** | 8 | 100% | ✅ Complete |
+| **Indices** | 5 | 100% | ✅ Complete |
+| **Economy** | 3 | 100% | ✅ Complete |
 | **Total** | **81** | **99%** | ✅ Production Ready |
 
 ### Implementation Status
 
 - ✅ **Phase 1 Complete** (53 tools): Core market data, aggregates, trades, quotes, snapshots
 - ✅ **Phase 2 Complete** (27 tools): Enhanced options, technical indicators, indices, corporate actions
-- ✅ **Phase 3 Complete** (1 tool): Inflation expectations, endpoint patterns documentation
+- ✅ **Phase 3 Complete** (1 tool): Inflation expectations tool added, comprehensive endpoint coverage analysis revealing 99% API coverage through generic tool architecture (81 tools serving 92 of 93 REST endpoints)
 
-For detailed documentation, see:
-- `PHASE2_COMPLETE.md` - Phase 2 implementation summary
-- `API_AUDIT_REPORT.md` - Complete API compliance audit
-- `IMPLEMENTATION.md` - Complete implementation roadmap
-- `REST_AUDIT.csv` - Endpoint coverage analysis
+## Documentation
+
+Comprehensive documentation is available:
+
+- **[CLAUDE.md](CLAUDE.md)** - Project instructions for Claude Code (development guide)
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Complete implementation roadmap and phase history
+- **[ENDPOINT_PATTERNS.md](ENDPOINT_PATTERNS.md)** - Architecture guide explaining how 81 tools serve 92 endpoints (1:1.14 coverage efficiency)
+- **[TESTING.md](TESTING.md)** - Test suite documentation and coverage reports
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+
+For phase-specific details, see the [analysis/](analysis/) directory containing Phase 1-3 documentation archives.
 
 ### Design Principles
 
@@ -166,31 +172,54 @@ uv run entrypoint.py
 
 ## Usage Examples
 
-Once integrated, you can prompt Claude to access Polygon.io data:
+Once integrated, you can prompt Claude to access Polygon.io data with efficient defaults:
 
 ```
-Get the latest price for AAPL stock
+Get the last year of daily prices for AAPL stock
 Show me yesterday's trading volume for MSFT
 What were the biggest stock market gainers today?
 Get me the latest crypto market data for BTC-USD
 ```
 
+### Efficient Data Retrieval
+
+The server uses optimized default limits to minimize API calls:
+
+```python
+# Get 1 year of daily bars in a single API call (252 trading days)
+get_aggs("AAPL", 1, "day", "2024-01-01", "2024-12-31", limit=252)
+
+# Get 1 trading day of minute bars in a single call (390 minutes)
+get_aggs("AAPL", 1, "minute", "2024-10-15", "2024-10-15", limit=390)
+
+# Get full options chain for liquid underlying (500+ contracts)
+list_options_contracts("AAPL", contract_type="call", expiration_date="2025-01-17", limit=500)
+```
+
+Default limits are set based on typical use cases:
+- Aggregates/tick data: 100 records
+- Large catalogs: 250 records
+- Technical indicators: 50 periods
+- Economic data: 10 records
+
+Adjust the `limit` parameter for specific workflows. See [CLAUDE.md](CLAUDE.md) for detailed guidance.
+
 ## Available Tools
 
 This MCP server implements **81 production-ready tools** across 7 asset classes:
 
-### Stocks (47 tools)
+### Stocks (42 tools)
 - **Aggregates**: `get_aggs`, `list_aggs`, `get_grouped_daily_aggs`, `get_daily_open_close_agg`, `get_previous_close_agg`
 - **Trades & Quotes**: `list_trades`, `get_last_trade`, `list_quotes`, `get_last_quote`
-- **Snapshots**: `list_universal_snapshots`, `get_snapshot_all`, `get_snapshot_ticker`, `get_snapshot_direction`, `get_snapshot_gainers_losers`
+- **Snapshots**: `list_universal_snapshots`, `get_snapshot_all`, `get_snapshot_ticker`, `get_snapshot_direction`
 - **Reference Data**: `list_tickers`, `get_ticker_details`, `list_ticker_news`, `get_ticker_types`, `get_ticker_changes`, `get_related_companies`
 - **Corporate Actions**: `list_splits`, `list_dividends`, `list_conditions`, `get_exchanges`, `list_ticker_events`
 - **Financials**: `list_stock_financials`, `list_ipos`, `list_short_interest`, `list_short_volume`
 - **Market Operations**: `get_market_status`, `get_market_holidays`
-- **Analyst Data**: `list_benzinga_analyst_insights`, `list_benzinga_consensus_ratings`, `list_benzinga_earnings`, `list_benzinga_news`, `list_benzinga_ratings`
+- **Analyst Data**: `list_benzinga_analyst_insights`, `list_benzinga_analysts`, `list_benzinga_consensus_ratings`, `list_benzinga_earnings`, `list_benzinga_firms`, `list_benzinga_guidance`, `list_benzinga_news`, `list_benzinga_ratings`
 - **Technical Indicators**: `get_sma`, `get_ema`, `get_macd`, `get_rsi`
 
-### Options (9 tools)
+### Options (8 tools)
 - **Contracts**: `list_options_contracts`, `get_options_contract`, `get_options_chain`
 - **Snapshots**: `get_snapshot_option`, `list_snapshot_options_chain`
 - **Technical Indicators**: `get_options_sma`, `get_options_ema`, `get_options_macd`, `get_options_rsi`
@@ -202,7 +231,7 @@ This MCP server implements **81 production-ready tools** across 7 asset classes:
 - **Market Data**: `list_futures_quotes`, `list_futures_trades`, `get_futures_snapshot`
 - **Reference**: `list_futures_schedules`, `list_futures_market_statuses`, `get_futures_snapshot_all`
 
-### Crypto (7 tools)
+### Crypto (6 tools)
 - **Market Data**: `get_last_crypto_trade`, `get_snapshot_crypto_book`
 - **Aggregates**: `get_crypto_aggs`, `list_crypto_aggs`, `get_crypto_daily_open_close_agg`
 - **Technical Indicators**: `get_crypto_sma`, `get_crypto_ema`
@@ -210,7 +239,7 @@ This MCP server implements **81 production-ready tools** across 7 asset classes:
 ### Forex (6 tools)
 - **Quotes**: `get_last_forex_quote`, `get_real_time_currency_conversion`
 - **Aggregates**: `get_forex_aggs`, `list_forex_aggs`, `get_forex_daily_open_close_agg`
-- **Snapshots**: `get_forex_snapshot_all`
+- **Technical Indicators**: `get_forex_sma`, `get_forex_ema`
 
 ### Indices (5 tools)
 - **Snapshots**: `get_indices_snapshot`
@@ -219,7 +248,7 @@ This MCP server implements **81 production-ready tools** across 7 asset classes:
 ### Economy (3 tools)
 - **Indicators**: `list_treasury_yields`, `list_inflation`, `list_inflation_expectations`
 
-For a complete list of available tools and their parameters, run the MCP Inspector or see `API_AUDIT_REPORT.md`.
+For a complete list of available tools and their parameters, run the MCP Inspector or see the [ENDPOINT_PATTERNS.md](ENDPOINT_PATTERNS.md) documentation.
 
 Each tool follows the Polygon.io SDK parameter structure while converting responses to CSV format for token-efficient LLM processing.
 

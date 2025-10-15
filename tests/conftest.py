@@ -1,4 +1,5 @@
 """Pytest fixtures for MCP Polygon tests."""
+
 import pytest
 import json
 from unittest.mock import Mock

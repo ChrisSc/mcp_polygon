@@ -28,7 +28,7 @@ def register_tools(mcp, client, formatter):
         to: Union[str, int, datetime, date],
         adjusted: Optional[bool] = None,
         sort: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -56,7 +56,7 @@ def register_tools(mcp, client, formatter):
         to: Union[str, int, datetime, date],
         adjusted: Optional[bool] = None,
         sort: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -139,7 +139,7 @@ def register_tools(mcp, client, formatter):
         timestamp_lte: Optional[Union[str, int, datetime, date]] = None,
         timestamp_gt: Optional[Union[str, int, datetime, date]] = None,
         timestamp_gte: Optional[Union[str, int, datetime, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -183,7 +183,7 @@ def register_tools(mcp, client, formatter):
         timestamp_lte: Optional[Union[str, int, datetime, date]] = None,
         timestamp_gt: Optional[Union[str, int, datetime, date]] = None,
         timestamp_gte: Optional[Union[str, int, datetime, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -224,7 +224,7 @@ def register_tools(mcp, client, formatter):
         type: str,
         ticker_any_of: Optional[List[str]] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -330,7 +330,7 @@ def register_tools(mcp, client, formatter):
         active: Optional[bool] = None,
         sort: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 250,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -373,7 +373,7 @@ def register_tools(mcp, client, formatter):
     async def list_ticker_news(
         ticker: Optional[str] = None,
         published_utc: Optional[Union[str, datetime, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -407,7 +407,7 @@ def register_tools(mcp, client, formatter):
     async def get_ticker_changes(
         ticker: Optional[str] = None,
         date: Optional[Union[str, datetime, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -458,7 +458,7 @@ def register_tools(mcp, client, formatter):
         ticker: Optional[str] = None,
         execution_date: Optional[Union[str, datetime, date]] = None,
         reverse_split: Optional[bool] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -479,7 +479,7 @@ def register_tools(mcp, client, formatter):
         ex_dividend_date: Optional[Union[str, datetime, date]] = None,
         frequency: Optional[int] = None,
         dividend_type: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -550,7 +550,7 @@ def register_tools(mcp, client, formatter):
         period_of_report_date_gte: Optional[Union[str, datetime, date]] = None,
         timeframe: Optional[str] = None,
         include_sources: Optional[bool] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -592,7 +592,7 @@ def register_tools(mcp, client, formatter):
         listing_date_gt: Optional[Union[str, datetime, date]] = None,
         listing_date_gte: Optional[Union[str, datetime, date]] = None,
         ipo_status: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -623,7 +623,7 @@ def register_tools(mcp, client, formatter):
         settlement_date_lte: Optional[Union[str, datetime, date]] = None,
         settlement_date_gt: Optional[Union[str, datetime, date]] = None,
         settlement_date_gte: Optional[Union[str, datetime, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -653,7 +653,7 @@ def register_tools(mcp, client, formatter):
         date_lte: Optional[Union[str, datetime, date]] = None,
         date_gt: Optional[Union[str, datetime, date]] = None,
         date_gte: Optional[Union[str, datetime, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         order: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
@@ -719,7 +719,7 @@ def register_tools(mcp, client, formatter):
         benzinga_rating_id_gte: Optional[str] = None,
         benzinga_rating_id_lt: Optional[str] = None,
         benzinga_rating_id_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -801,7 +801,7 @@ def register_tools(mcp, client, formatter):
         full_name_gte: Optional[str] = None,
         full_name_lt: Optional[str] = None,
         full_name_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -847,7 +847,7 @@ def register_tools(mcp, client, formatter):
         date_gte: Optional[Union[str, date]] = None,
         date_lt: Optional[Union[str, date]] = None,
         date_lte: Optional[Union[str, date]] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -921,7 +921,7 @@ def register_tools(mcp, client, formatter):
         fiscal_period_gte: Optional[str] = None,
         fiscal_period_lt: Optional[str] = None,
         fiscal_period_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -997,7 +997,7 @@ def register_tools(mcp, client, formatter):
         benzinga_id_gte: Optional[str] = None,
         benzinga_id_lt: Optional[str] = None,
         benzinga_id_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -1061,7 +1061,7 @@ def register_tools(mcp, client, formatter):
         fiscal_period_gte: Optional[str] = None,
         fiscal_period_lt: Optional[str] = None,
         fiscal_period_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -1146,7 +1146,7 @@ def register_tools(mcp, client, formatter):
         author_gte: Optional[str] = None,
         author_lt: Optional[str] = None,
         author_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -1243,7 +1243,7 @@ def register_tools(mcp, client, formatter):
         benzinga_firm_id_gte: Optional[str] = None,
         benzinga_firm_id_lt: Optional[str] = None,
         benzinga_firm_id_lte: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
@@ -1320,7 +1320,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 50,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Simple Moving Average (SMA) technical indicator for a stock ticker."""
@@ -1346,7 +1346,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 50,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Exponential Moving Average (EMA) technical indicator for a stock ticker."""
@@ -1374,7 +1374,7 @@ def register_tools(mcp, client, formatter):
         signal_window: Optional[int] = None,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Moving Average Convergence/Divergence (MACD) technical indicator for a stock ticker."""
@@ -1402,7 +1402,7 @@ def register_tools(mcp, client, formatter):
         window: Optional[int] = 14,
         series_type: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[int] = 10,
+        limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Relative Strength Index (RSI) technical indicator for a stock ticker."""

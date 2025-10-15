@@ -23,7 +23,20 @@ def json_to_csv(json_input: str | dict) -> str:
         data = json_input
 
     if isinstance(data, dict) and "results" in data:
-        records = data["results"]
+        results = data["results"]
+        # Handle both list results (most endpoints) and dict results (technical indicators)
+        if isinstance(results, list):
+            records = results
+        elif isinstance(results, dict):
+            # For technical indicators: results = {"values": [...]}
+            # Extract the values array if it exists, otherwise wrap the dict
+            if "values" in results and isinstance(results["values"], list):
+                records = results["values"]
+            else:
+                records = [results]
+        else:
+            # Single result object
+            records = [results]
     elif isinstance(data, list):
         records = data
     else:

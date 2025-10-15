@@ -32,3 +32,8 @@ anthropic-docs
 polygon-docs
 
 .coverage
+htmlcov/
+
+# Performance benchmark scripts (temporary)
+performance_benchmark.py
+api_wrapper_benchmark.py
