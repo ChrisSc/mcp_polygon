@@ -38,6 +38,7 @@ def register_tools(mcp, client, formatter):
         return await api.call(
             "list_treasury_yields",
             date=date,
+            date_any_of=date_any_of,
             date_lt=date_lt,
             date_lte=date_lte,
             date_gt=date_gt,
@@ -75,3 +76,4 @@ def register_tools(mcp, client, formatter):
             sort=sort,
             params=params,
         )
+

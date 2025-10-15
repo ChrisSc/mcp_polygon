@@ -392,6 +392,52 @@ def register_tools(mcp, client, formatter):
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def get_related_companies(
+        ticker: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get a list of related or similar companies for a given ticker symbol based on market data analysis."""
+        return await api.call(
+            "get_related_companies",
+            ticker=ticker,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def get_ticker_changes(
+        ticker: Optional[str] = None,
+        date: Optional[Union[str, datetime, date]] = None,
+        limit: Optional[int] = 10,
+        sort: Optional[str] = None,
+        order: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get historical ticker symbol changes including splits, mergers, and name changes."""
+        return await api.call(
+            "list_ticker_changes",
+            ticker=ticker,
+            date=date,
+            limit=limit,
+            sort=sort,
+            order=order,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def list_ticker_events(
+        ticker: str,
+        types: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get a timeline of corporate events for a company including earnings releases, dividends, stock splits, and other significant events."""
+        return await api.call(
+            "get_ticker_events",
+            ticker=ticker,
+            types=types,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def get_ticker_types(
         asset_class: Optional[str] = None,
         locale: Optional[str] = None,
@@ -1262,5 +1308,113 @@ def register_tools(mcp, client, formatter):
             benzinga_firm_id_lte=benzinga_firm_id_lte,
             limit=limit,
             sort=sort,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def get_sma(
+        ticker: str,
+        timestamp: Optional[Union[str, int, datetime, date]] = None,
+        timespan: Optional[str] = None,
+        adjusted: Optional[bool] = None,
+        window: Optional[int] = 50,
+        series_type: Optional[str] = None,
+        order: Optional[str] = None,
+        limit: Optional[int] = 10,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get Simple Moving Average (SMA) technical indicator for a stock ticker."""
+        return await api.call(
+            "get_sma",
+            ticker=ticker,
+            timestamp=timestamp,
+            timespan=timespan,
+            adjusted=adjusted,
+            window=window,
+            series_type=series_type,
+            order=order,
+            limit=limit,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def get_ema(
+        ticker: str,
+        timestamp: Optional[Union[str, int, datetime, date]] = None,
+        timespan: Optional[str] = None,
+        adjusted: Optional[bool] = None,
+        window: Optional[int] = 50,
+        series_type: Optional[str] = None,
+        order: Optional[str] = None,
+        limit: Optional[int] = 10,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get Exponential Moving Average (EMA) technical indicator for a stock ticker."""
+        return await api.call(
+            "get_ema",
+            ticker=ticker,
+            timestamp=timestamp,
+            timespan=timespan,
+            adjusted=adjusted,
+            window=window,
+            series_type=series_type,
+            order=order,
+            limit=limit,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def get_macd(
+        ticker: str,
+        timestamp: Optional[Union[str, int, datetime, date]] = None,
+        timespan: Optional[str] = None,
+        adjusted: Optional[bool] = None,
+        short_window: Optional[int] = None,
+        long_window: Optional[int] = None,
+        signal_window: Optional[int] = None,
+        series_type: Optional[str] = None,
+        order: Optional[str] = None,
+        limit: Optional[int] = 10,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get Moving Average Convergence/Divergence (MACD) technical indicator for a stock ticker."""
+        return await api.call(
+            "get_macd",
+            ticker=ticker,
+            timestamp=timestamp,
+            timespan=timespan,
+            adjusted=adjusted,
+            short_window=short_window,
+            long_window=long_window,
+            signal_window=signal_window,
+            series_type=series_type,
+            order=order,
+            limit=limit,
+            params=params,
+        )
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+    async def get_rsi(
+        ticker: str,
+        timestamp: Optional[Union[str, int, datetime, date]] = None,
+        timespan: Optional[str] = None,
+        adjusted: Optional[bool] = None,
+        window: Optional[int] = 14,
+        series_type: Optional[str] = None,
+        order: Optional[str] = None,
+        limit: Optional[int] = 10,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get Relative Strength Index (RSI) technical indicator for a stock ticker."""
+        return await api.call(
+            "get_rsi",
+            ticker=ticker,
+            timestamp=timestamp,
+            timespan=timespan,
+            adjusted=adjusted,
+            window=window,
+            series_type=series_type,
+            order=order,
+            limit=limit,
             params=params,
         )
