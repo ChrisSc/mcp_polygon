@@ -30,3 +30,5 @@ Thumbs.db
 
 anthropic-docs
 polygon-docs
+
+.coverage
