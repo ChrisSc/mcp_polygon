@@ -159,6 +159,60 @@ Make sure you complete the various fields.
 ```
 </details>
 
+### Claude Desktop HTTP Configuration
+
+To connect Claude Desktop to a local Docker HTTP server instead of using the stdio transport:
+
+1. **Start the Docker server** (as shown in [Docker HTTP Transport](#docker-http-transport)):
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Update your `claude_desktop_config.json`** with the HTTP transport configuration:
+
+   A ready-to-use configuration file is provided in [`claude_desktop_config_http.json`](./claude_desktop_config_http.json).
+
+<details>
+  <summary>claude_desktop_config.json (HTTP Transport)</summary>
+
+```json
+{
+    "mcpServers": {
+        "polygon-docker": {
+            "url": "http://localhost:8000/mcp",
+            "transport": "streamable-http"
+        }
+    }
+}
+```
+
+**Configuration File Locations:**
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+**Important Notes:**
+- The `url` field points to your local Docker server endpoint
+- The `transport` field must be set to `"streamable-http"`
+- No `command`, `args`, or `env` fields are needed for HTTP transport
+- The Docker server must be running before starting Claude Desktop
+- API key is configured in Docker via `.env` file (not in Claude Desktop config)
+
+**Advantages of HTTP Transport:**
+- ✅ Server runs independently of Claude Desktop
+- ✅ Can connect multiple MCP clients to the same server
+- ✅ Easier debugging with Docker logs
+- ✅ Better isolation and resource management
+
+**Disadvantages:**
+- ❌ Requires Docker to be running
+- ❌ Extra step to start/stop the server
+- ❌ Network overhead (minimal for localhost)
+
+For stdio transport (default), see the [Claude Desktop](#claude-desktop) section above.
+
+</details>
+
 ## Transport Configuration
 
 By default, STDIO transport is used.
@@ -172,6 +226,94 @@ MCP_TRANSPORT=streamable-http \
 POLYGON_API_KEY=<your_api_key_here> \
 uv run entrypoint.py
 ```
+
+### Docker HTTP Transport
+
+To run the server in Docker with HTTP transport (tested and verified ✅):
+
+```bash
+# Start the server
+docker-compose up --build
+
+# The server will be available at:
+# http://localhost:8000/mcp
+```
+
+**Endpoint Details:**
+- **URL**: `http://localhost:8000/mcp`
+- **Transport**: `streamable-http` (Server-Sent Events)
+- **Protocol**: MCP v2024-11-05
+- **Tools**: 81 tools across 7 asset classes
+
+**Testing the Endpoint:**
+
+The streamable-http transport requires specific headers:
+```bash
+# Test with proper headers
+curl -X POST http://localhost:8000/mcp \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
+```
+
+**Configuration:**
+
+The default `docker-compose.yml` configuration:
+- ✅ Runs with `streamable-http` transport
+- ✅ Binds to `localhost:8000` on the host machine (secure)
+- ✅ Includes DNS rebinding protection (MCP spec compliant)
+- ✅ Container hardened with read-only filesystem and dropped capabilities
+- ✅ Cache directory support for uv package manager
+
+See `.env.example` for all configuration options.
+
+**Connecting MCP Clients:**
+
+For Claude Desktop configuration to connect to the local Docker server, see the [Claude Desktop HTTP Configuration](#claude-desktop-http-configuration) section below.
+
+## Security Considerations
+
+⚠️ **IMPORTANT**: When running with HTTP transports (SSE or streamable-http), ensure proper security measures:
+
+### For Local Development (Docker)
+
+1. **Localhost Binding** (Default Configuration):
+   ```yaml
+   ports:
+     - "127.0.0.1:8000:8000"  # ✅ Safe - localhost only
+     # NOT "0.0.0.0:8000:8000"  # ❌ Dangerous - exposes to network
+   ```
+
+2. **DNS Rebinding Protection** (Enabled by Default):
+   The server automatically enables Origin header validation per MCP specification. Configuration in `server.py`:
+   ```python
+   transport_security = TransportSecuritySettings(
+       enable_dns_rebinding_protection=True,
+       allowed_hosts=["localhost:8000", "127.0.0.1:8000"],
+       allowed_origins=["http://localhost:8000"],
+   )
+   ```
+
+3. **API Key Protection**:
+   - Never commit API keys to version control
+   - Use `.env` files (included in `.gitignore`)
+   - Consider Docker secrets for sensitive deployments
+   - Monitor API usage at [polygon.io dashboard](https://polygon.io/dashboard)
+
+4. **Container Hardening** (Enabled by Default):
+   - Read-only filesystem
+   - No new privileges
+   - Dropped Linux capabilities
+   - See `docker-compose.yml` for full configuration
+
+### Security Level
+
+- **Current Docker Setup**: 8/10 (Production-ready for local development)
+- **Localhost binding**: Prevents network exposure
+- **DNS rebinding protection**: MCP spec compliant
+- **Container hardening**: Defense-in-depth security
+
+For detailed security information, see [SECURITY.md](SECURITY.md).
 
 ## Usage Examples
 

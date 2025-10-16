@@ -4,7 +4,23 @@ services:
     volumes:
       - .:/app
     container_name: mcp_polygon_server
+    ports:
+      - "127.0.0.1:8000:8000"  # Bind to localhost only on host for security
     environment:
       - POLYGON_API_KEY=${POLYGON_API_KEY}
+      - MCP_TRANSPORT=streamable-http  # Enable HTTP transport
+      - FASTMCP_HOST=0.0.0.0  # Bind to all interfaces in container (required for Docker)
+      - FASTMCP_PORT=8000
     stdin_open: true
     tty: true
+    # Security hardening
+    read_only: true  # Make container filesystem read-only
+    tmpfs:
+      - /tmp  # Provide writable tmp directory
+      - /root/.cache  # Provide writable cache directory for uv
+    security_opt:
+      - no-new-privileges:true  # Prevent privilege escalation
+    cap_drop:
+      - ALL  # Drop all Linux capabilities
+    cap_add:
+      - NET_BIND_SERVICE  # Only allow network binding
