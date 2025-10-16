@@ -3,6 +3,7 @@ import logging
 import sys
 from typing import Literal
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from polygon import RESTClient
 from importlib.metadata import version, PackageNotFoundError
 from .formatters import json_to_csv
@@ -29,7 +30,19 @@ except PackageNotFoundError:
 polygon_client = RESTClient(POLYGON_API_KEY)
 polygon_client.headers["User-Agent"] += f" {version_number}"
 
-poly_mcp = FastMCP("Polygon", dependencies=["polygon"])
+# Configure transport security for HTTP transports
+# This enables DNS rebinding protection as required by MCP specification
+transport_security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=["localhost:8000", "127.0.0.1:8000", "0.0.0.0:8000"],
+    allowed_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+)
+
+poly_mcp = FastMCP(
+    "Polygon",
+    dependencies=["polygon"],
+    transport_security=transport_security,
+)
 
 # Register all tools by asset class
 stocks.register_tools(poly_mcp, polygon_client, json_to_csv)

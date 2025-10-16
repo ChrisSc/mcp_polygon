@@ -1,0 +1,34 @@
+{
+  "$comment": [
+    "Claude Desktop MCP Configuration - HTTP Transport",
+    "",
+    "This configuration connects Claude Desktop to the local Docker MCP server",
+    "running at http://localhost:8000/mcp using streamable-http transport.",
+    "",
+    "Setup Instructions:",
+    "1. Start the Docker server: docker-compose up -d",
+    "2. Locate your Claude Desktop config file:",
+    "   - macOS: ~/Library/Application Support/Claude/claude_desktop_config.json",
+    "   - Windows: %APPDATA%\\Claude\\claude_desktop_config.json",
+    "   - Linux: ~/.config/Claude/claude_desktop_config.json",
+    "3. Copy the mcpServers section below to your config file",
+    "4. Restart Claude Desktop",
+    "",
+    "Requirements:",
+    "- Docker server must be running (docker-compose up -d)",
+    "- .env file must contain POLYGON_API_KEY",
+    "- Port 8000 must be available on localhost",
+    "",
+    "Verified Configuration:",
+    "- MCP Protocol: v2024-11-05",
+    "- Tools Available: 81",
+    "- Endpoint: http://localhost:8000/mcp",
+    "- Security: DNS rebinding protection enabled"
+  ],
+  "mcpServers": {
+    "polygon-docker": {
+      "url": "http://localhost:8000/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
