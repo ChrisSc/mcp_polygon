@@ -380,7 +380,7 @@ python -c "from src.mcp_polygon.server import poly_mcp; print(list(poly_mcp._too
 - **Major Discovery**: Only 1 true gap existed - 99% endpoint coverage achieved (92/93 endpoints)
 - **Architecture Validation**: 81 tools serve 92 endpoints via generic design (1:1.14 ratio)
 - Comprehensive gap analysis revealed REST_AUDIT.csv was outdated (pre-Phase 2)
-- Created 10 documentation files (15,200+ words): ENDPOINT_PATTERNS.md, PHASE3_GAP_ANALYSIS.md, etc.
+- Created 10 documentation files (15,200+ words): docs/ENDPOINT_PATTERNS.md, PHASE3_GAP_ANALYSIS.md, etc.
 - Code quality improved from A- (88/100) to A (94/100)
 - Security maintained at 8/10 (production-ready)
 - 103 total tests (80 passed, 3 Phase 3 tests added)
@@ -388,10 +388,10 @@ python -c "from src.mcp_polygon.server import poly_mcp; print(list(poly_mcp._too
 **Key Phase 3 Learnings**:
 - Generic tool architecture enables 85% code reduction vs 1:1 tool-endpoint mapping
 - Ticker format routing (O:, X:, C:, I:) allows single tool to serve multiple asset classes
-- Documentation: See ENDPOINT_PATTERNS.md for how 81 tools serve 92 endpoints
+- Documentation: See docs/ENDPOINT_PATTERNS.md for how 81 tools serve 92 endpoints
 
 ### ✅ Phase 4 Complete (2025-10-17): WebSocket Infrastructure
-- **Module**: `src/mcp_polygon/tools/websockets/` (Phase 2 from WEBSOCKETS_IMPLEMENTATION.md)
+- **Module**: `src/mcp_polygon/tools/websockets/` (Phase 2 from docs/WEBSOCKETS_IMPLEMENTATION.md)
 - **Core Infrastructure** (533 lines total):
   - `connection_manager.py` (289 lines): Connection lifecycle, auth, subscriptions, auto-reconnect
   - `stream_formatter.py` (244 lines): JSON message formatting for 8 event types
@@ -466,7 +466,7 @@ The API wrapper eliminates code duplication and provides consistent, context-awa
 - `get_aggs("C:EURUSD", ...)` → Forex aggregates
 - `get_aggs("I:SPX", ...)` → Index aggregates
 
-This pattern enables **1:1.14 coverage efficiency** (81 tools : 92 endpoints). See `ENDPOINT_PATTERNS.md` for complete architecture guide.
+This pattern enables **1:1.14 coverage efficiency** (81 tools : 92 endpoints). See `docs/ENDPOINT_PATTERNS.md` for complete architecture guide.
 
 ### Default Limit Guidelines
 
@@ -546,8 +546,10 @@ All 36 WebSocket tools require **Polygon.io Starter plan or higher** (free tier 
   - `polygon-docs/websockets/` - WebSocket streaming documentation
 - Project docs:
   - `README.md` - Project overview and quick start
-  - `IMPLEMENTATION.md` - REST API implementation details
-  - `WEBSOCKETS_IMPLEMENTATION.md` - WebSocket implementation guide
-  - `TESTING.md` - Testing strategy and guidelines
+  - `CLAUDE.md` - Development guide (this file)
+  - `SECURITY.md` - Security policy and responsible disclosure
   - `CHANGELOG.md` - Version history
-  - `ENDPOINT_PATTERNS.md` - Tool-to-endpoint mapping
+  - `docs/IMPLEMENTATION.md` - REST API implementation details
+  - `docs/WEBSOCKETS_IMPLEMENTATION.md` - WebSocket implementation guide
+  - `docs/TESTING.md` - Testing strategy and guidelines
+  - `docs/ENDPOINT_PATTERNS.md` - Tool-to-endpoint mapping

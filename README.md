@@ -77,13 +77,19 @@ src/mcp_polygon/
 
 Comprehensive documentation is available:
 
+### Core Documentation (Root)
 - **[CLAUDE.md](CLAUDE.md)** - Project instructions for Claude Code (development guide)
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Complete implementation roadmap and phase history
-- **[ENDPOINT_PATTERNS.md](ENDPOINT_PATTERNS.md)** - Architecture guide explaining how 81 tools serve 92 endpoints (1:1.14 coverage efficiency)
-- **[TESTING.md](TESTING.md)** - Test suite documentation and coverage reports
+- **[SECURITY.md](SECURITY.md)** - Security policy and responsible disclosure
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
 
-For phase-specific details, see the [analysis/](analysis/) directory containing Phase 1-3 documentation archives.
+### Implementation Guides (docs/)
+- **[Implementation Roadmap](docs/IMPLEMENTATION.md)** - REST API implementation phases (99% coverage, 81 tools)
+- **[WebSocket Implementation](docs/WEBSOCKETS_IMPLEMENTATION.md)** - Real-time streaming architecture (36 tools)
+- **[Endpoint Patterns](docs/ENDPOINT_PATTERNS.md)** - Tool-to-endpoint mapping (1:1.14 coverage efficiency)
+- **[Testing Guide](docs/TESTING.md)** - Test suite documentation (336 tests, 91% coverage)
+
+### Archives
+- **[analysis/](analysis/)** - Phase 1-3 documentation archives
 
 ### Design Principles
 
@@ -415,7 +421,7 @@ This MCP server implements **81 production-ready tools** across 7 asset classes:
 ### Economy (3 tools)
 - **Indicators**: `list_treasury_yields`, `list_inflation`, `list_inflation_expectations`
 
-For a complete list of available tools and their parameters, run the MCP Inspector or see the [ENDPOINT_PATTERNS.md](ENDPOINT_PATTERNS.md) documentation.
+For a complete list of available tools and their parameters, run the MCP Inspector or see the [Endpoint Patterns](docs/ENDPOINT_PATTERNS.md) documentation.
 
 Each tool follows the Polygon.io SDK parameter structure while converting responses to CSV format for token-efficient LLM processing.
 
@@ -502,7 +508,7 @@ This is a maintained fork of the official [Polygon.io MCP Server](https://github
 
 This fork provides:
 - Extended development and maintenance beyond the original scope
-- Additional documentation and implementation guides (CLAUDE.md, IMPLEMENTATION.md, ENDPOINT_PATTERNS.md, TESTING.md)
+- Additional documentation and implementation guides (CLAUDE.md, [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md), [docs/ENDPOINT_PATTERNS.md](docs/ENDPOINT_PATTERNS.md), [docs/TESTING.md](docs/TESTING.md))
 - Production-ready deployment (Phase 3 complete: 99% API coverage, 81 tools)
 - Comprehensive development guides for contributors
 
