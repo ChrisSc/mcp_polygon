@@ -1501,7 +1501,7 @@ class TestParameterValidationPhase2:
         register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
         tool = mcp._tool_manager._tools["list_options_contracts"]
 
-        result = await tool.fn(
+        await tool.fn(
             underlying_ticker="SPY",
             contract_type="call",
             strike_price=650.0,
@@ -1535,7 +1535,7 @@ class TestParameterValidationPhase2:
         register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
         tool = mcp._tool_manager._tools["get_sma"]
 
-        result = await tool.fn(ticker="AAPL", window=200, timespan="week")
+        await tool.fn(ticker="AAPL", window=200, timespan="week")
 
         call_args = mock_polygon_client.get_sma.call_args
         assert call_args[1]["window"] == 200
