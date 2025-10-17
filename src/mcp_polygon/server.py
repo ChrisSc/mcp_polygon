@@ -7,7 +7,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from polygon import RESTClient
 from importlib.metadata import version, PackageNotFoundError
 from .formatters import json_to_csv
-from .tools import stocks, options, futures, crypto, forex, economy, indices
+from .tools.rest import stocks, options, futures, crypto, forex, economy, indices
 
 # Configure logging
 logging.basicConfig(

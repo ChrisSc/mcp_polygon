@@ -673,7 +673,7 @@ class TestOptionsToolsPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -715,7 +715,7 @@ class TestOptionsToolsPhase2:
         }
         mock_polygon_client.get_options_contract.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -756,7 +756,7 @@ class TestOptionsToolsPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -800,7 +800,7 @@ class TestStocksToolsPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -834,7 +834,7 @@ class TestStocksToolsPhase2:
         }
         mock_polygon_client.list_ticker_changes.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -877,7 +877,7 @@ class TestStocksToolsPhase2:
         }
         mock_polygon_client.get_ticker_events.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -908,7 +908,7 @@ class TestStocksToolsPhase2:
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -947,7 +947,7 @@ class TestStocksToolsPhase2:
         }
         mock_polygon_client.get_ema.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -979,7 +979,7 @@ class TestStocksToolsPhase2:
         }
         mock_polygon_client.get_macd.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1002,7 +1002,7 @@ class TestStocksToolsPhase2:
         }
         mock_polygon_client.get_rsi.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1058,7 +1058,7 @@ class TestIndicesToolsPhase2:
         }
         mock_polygon_client.get_snapshot_indices.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.indices import register_tools
+        from src.mcp_polygon.tools.rest.indices import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1090,7 +1090,7 @@ class TestIndicesToolsPhase2:
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.indices import register_tools
+        from src.mcp_polygon.tools.rest.indices import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1128,7 +1128,7 @@ class TestTechnicalIndicatorsPhase2:
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1151,7 +1151,7 @@ class TestTechnicalIndicatorsPhase2:
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.forex import register_tools
+        from src.mcp_polygon.tools.rest.forex import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1185,7 +1185,7 @@ class TestTechnicalIndicatorsPhase2:
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.crypto import register_tools
+        from src.mcp_polygon.tools.rest.crypto import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1227,7 +1227,7 @@ class TestEconomyToolsPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.economy import register_tools
+        from src.mcp_polygon.tools.rest.economy import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1261,7 +1261,7 @@ class TestEconomyToolsPhase2:
         mock_polygon_client.list_inflation_expectations = None
         del mock_polygon_client.list_inflation_expectations
 
-        from src.mcp_polygon.tools.economy import register_tools
+        from src.mcp_polygon.tools.rest.economy import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1309,7 +1309,7 @@ class TestEconomyToolsPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.economy import register_tools
+        from src.mcp_polygon.tools.rest.economy import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1348,7 +1348,7 @@ class TestErrorHandlingPhase2:
         error.response.status_code = 404
         mock_polygon_client.list_options_contracts.side_effect = error
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1368,7 +1368,7 @@ class TestErrorHandlingPhase2:
         error.response.status_code = 401
         mock_polygon_client.get_sma.side_effect = error
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1392,7 +1392,7 @@ class TestErrorHandlingPhase2:
         error.response.status_code = 429
         mock_polygon_client.get_snapshot_indices.side_effect = error
 
-        from src.mcp_polygon.tools.indices import register_tools
+        from src.mcp_polygon.tools.rest.indices import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1435,7 +1435,7 @@ class TestCSVFormattingPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1467,7 +1467,7 @@ class TestCSVFormattingPhase2:
         }
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1494,7 +1494,7 @@ class TestParameterValidationPhase2:
             mock_data
         )
 
-        from src.mcp_polygon.tools.options import register_tools
+        from src.mcp_polygon.tools.rest.options import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")
@@ -1528,7 +1528,7 @@ class TestParameterValidationPhase2:
         mock_data = {"status": "OK", "results": {"values": []}}
         mock_polygon_client.get_sma.return_value = mock_response(mock_data)
 
-        from src.mcp_polygon.tools.stocks import register_tools
+        from src.mcp_polygon.tools.rest.stocks import register_tools
         from mcp.server.fastmcp import FastMCP
 
         mcp = FastMCP("test")

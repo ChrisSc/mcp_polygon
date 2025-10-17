@@ -1,13 +1,13 @@
-"""Forex-related MCP tools for Polygon.io API"""
+"""Crypto-related MCP tools for Polygon.io API"""
 
 from typing import Optional, Any, Dict, Union
 from datetime import datetime, date
-from ..api_wrapper import PolygonAPIWrapper
+from ...api_wrapper import PolygonAPIWrapper
 
 
 def register_tools(mcp, client, formatter):
     """
-    Register all forex-related tools with the MCP server.
+    Register all crypto-related tools with the MCP server.
 
     Args:
         mcp: FastMCP instance
@@ -20,43 +20,37 @@ def register_tools(mcp, client, formatter):
     api = PolygonAPIWrapper(client, formatter)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    async def get_last_forex_quote(
+    async def get_last_crypto_trade(
         from_: str,
         to: str,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
-        Get the most recent forex quote.
+        Get the most recent trade for a crypto pair.
         """
         return await api.call(
-            "get_last_forex_quote",
+            "get_last_crypto_trade",
             from_=from_,
             to=to,
             params=params,
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    async def get_real_time_currency_conversion(
-        from_: str,
-        to: str,
-        amount: Optional[float] = None,
-        precision: Optional[int] = None,
+    async def get_snapshot_crypto_book(
+        ticker: str,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
-        Get real-time currency conversion.
+        Get snapshot for a crypto ticker's order book.
         """
         return await api.call(
-            "get_real_time_currency_conversion",
-            from_=from_,
-            to=to,
-            amount=amount,
-            precision=precision,
+            "get_snapshot_crypto_book",
+            ticker=ticker,
             params=params,
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    async def get_forex_sma(
+    async def get_crypto_sma(
         ticker: str,
         timestamp: Optional[Union[str, int, datetime, date]] = None,
         timespan: Optional[str] = None,
@@ -67,7 +61,7 @@ def register_tools(mcp, client, formatter):
         limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Get Simple Moving Average (SMA) technical indicator for a forex ticker (format: C:EURUSD)."""
+        """Get Simple Moving Average (SMA) technical indicator for a crypto ticker (format: X:BTCUSD)."""
         return await api.call(
             "get_sma",
             ticker=ticker,
@@ -82,7 +76,7 @@ def register_tools(mcp, client, formatter):
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    async def get_forex_ema(
+    async def get_crypto_ema(
         ticker: str,
         timestamp: Optional[Union[str, int, datetime, date]] = None,
         timespan: Optional[str] = None,
@@ -93,7 +87,7 @@ def register_tools(mcp, client, formatter):
         limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Get Exponential Moving Average (EMA) technical indicator for a forex ticker (format: C:EURUSD)."""
+        """Get Exponential Moving Average (EMA) technical indicator for a crypto ticker (format: X:BTCUSD)."""
         return await api.call(
             "get_ema",
             ticker=ticker,
@@ -108,7 +102,7 @@ def register_tools(mcp, client, formatter):
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    async def get_forex_macd(
+    async def get_crypto_macd(
         ticker: str,
         timestamp: Optional[Union[str, int, datetime, date]] = None,
         timespan: Optional[str] = None,
@@ -121,7 +115,7 @@ def register_tools(mcp, client, formatter):
         limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Get Moving Average Convergence/Divergence (MACD) technical indicator for a forex ticker (format: C:EURUSD)."""
+        """Get Moving Average Convergence/Divergence (MACD) technical indicator for a crypto ticker (format: X:BTCUSD)."""
         return await api.call(
             "get_macd",
             ticker=ticker,
@@ -138,7 +132,7 @@ def register_tools(mcp, client, formatter):
         )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-    async def get_forex_rsi(
+    async def get_crypto_rsi(
         ticker: str,
         timestamp: Optional[Union[str, int, datetime, date]] = None,
         timespan: Optional[str] = None,
@@ -149,7 +143,7 @@ def register_tools(mcp, client, formatter):
         limit: Optional[int] = 50,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Get Relative Strength Index (RSI) technical indicator for a forex ticker (format: C:EURUSD)."""
+        """Get Relative Strength Index (RSI) technical indicator for a crypto ticker (format: X:BTCUSD)."""
         return await api.call(
             "get_rsi",
             ticker=ticker,

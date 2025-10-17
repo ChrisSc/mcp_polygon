@@ -8,7 +8,7 @@ This is a Model Context Protocol (MCP) server that exposes Polygon.io financial 
 
 **Current Status**: Phase 3 Complete (99% API endpoint coverage), Production Ready ✅
 
-**Key Architecture Principle**: Generic tool design with centralized error handling. Tools are organized by asset class in `src/mcp_polygon/tools/`, all using the `PolygonAPIWrapper` for consistent error handling and response formatting. The architecture achieves **1:1.14 coverage efficiency** - 81 tools serve 92 of 93 REST endpoints through ticker format routing (O:, X:, C:, I: prefixes).
+**Key Architecture Principle**: Generic tool design with centralized error handling. REST tools are organized by asset class in `src/mcp_polygon/tools/rest/`, all using the `PolygonAPIWrapper` for consistent error handling and response formatting. The architecture achieves **1:1.14 coverage efficiency** - 81 tools serve 92 of 93 REST endpoints through ticker format routing (O:, X:, C:, I: prefixes).
 
 ## Development Commands
 
@@ -111,14 +111,24 @@ src/mcp_polygon/
 ├── formatters.py      # CSV output utilities (82 lines)
 │                      # - json_to_csv(): Main conversion function
 │                      # - _flatten_dict(): Nested dict flattening
-└── tools/             # Asset class modules (81 tools total)
-    ├── stocks.py      # 47 tools - Aggregates, trades, quotes, snapshots, reference, technical indicators
-    ├── futures.py     # 11 tools - Contracts, products, schedules, market data
-    ├── crypto.py      # 7 tools - Trades, snapshots, aggregates, technical indicators
-    ├── forex.py       # 6 tools - Quotes, conversion, aggregates, technical indicators
-    ├── options.py     # 9 tools - Contracts, chain, snapshots, technical indicators
-    ├── indices.py     # 5 tools - Snapshots, technical indicators (requires Indices API tier)
-    └── economy.py     # 3 tools - Treasury yields, inflation, inflation expectations
+└── tools/             # API endpoints
+    ├── rest/          # 81 REST tools (Phase 1-3 Complete)
+    │   ├── stocks.py      # 47 tools - Aggregates, trades, quotes, snapshots, reference, technical indicators
+    │   ├── futures.py     # 11 tools - Contracts, products, schedules, market data
+    │   ├── crypto.py      # 7 tools - Trades, snapshots, aggregates, technical indicators
+    │   ├── forex.py       # 6 tools - Quotes, conversion, aggregates, technical indicators
+    │   ├── options.py     # 9 tools - Contracts, chain, snapshots, technical indicators
+    │   ├── indices.py     # 5 tools - Snapshots, technical indicators (requires Indices API tier)
+    │   └── economy.py     # 3 tools - Treasury yields, inflation, inflation expectations
+    └── websockets/    # 36 WebSocket tools (Phase 4 - Coming Soon)
+        ├── connection_manager.py  # (Planned) Connection lifecycle management
+        ├── stream_formatter.py    # (Planned) JSON streaming formatter
+        ├── stocks.py              # (Planned) 6 tools - start/stop/status/subscribe/unsubscribe/list
+        ├── options.py             # (Planned) 6 tools
+        ├── futures.py             # (Planned) 6 tools
+        ├── indices.py             # (Planned) 6 tools
+        ├── forex.py               # (Planned) 6 tools
+        └── crypto.py              # (Planned) 6 tools
 ```
 
 ### Error Handling Flow
@@ -160,7 +170,7 @@ The server uses the official `polygon-api-client` SDK:
 
 ### Step 1: Choose the Correct Module
 
-Add tools to the appropriate file in `src/mcp_polygon/tools/`:
+Add REST tools to the appropriate file in `src/mcp_polygon/tools/rest/`:
 - Stock market data → `stocks.py`
 - Options data → `options.py`
 - Futures data → `futures.py`
