@@ -11,6 +11,9 @@ from .stream_formatter import (
     format_connection_status,
 )
 
+# Phase 3: WebSocket tool modules (36 tools total, 6 per market)
+from . import stocks, crypto, options, futures, forex, indices
+
 __all__ = [
     "WebSocketConnection",
     "ConnectionManager",
@@ -18,6 +21,10 @@ __all__ = [
     "format_stream_message",
     "format_status_message",
     "format_connection_status",
-    # Phase 3: Tool modules will be added here
-    # "stocks", "options", "futures", "crypto", "forex", "indices"
+    "stocks",
+    "crypto",
+    "options",
+    "futures",
+    "forex",
+    "indices",
 ]

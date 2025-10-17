@@ -8,6 +8,15 @@ from polygon import RESTClient
 from importlib.metadata import version, PackageNotFoundError
 from .formatters import json_to_csv
 from .tools.rest import stocks, options, futures, crypto, forex, economy, indices
+from .tools.websockets.connection_manager import ConnectionManager
+from .tools.websockets import (
+    stocks as stocks_ws,
+    crypto as crypto_ws,
+    options as options_ws,
+    futures as futures_ws,
+    forex as forex_ws,
+    indices as indices_ws,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +38,9 @@ except PackageNotFoundError:
 
 polygon_client = RESTClient(POLYGON_API_KEY)
 polygon_client.headers["User-Agent"] += f" {version_number}"
+
+# Create global ConnectionManager for WebSocket streaming
+connection_manager = ConnectionManager()
 
 # Configure transport security for HTTP transports
 # This enables DNS rebinding protection as required by MCP specification
@@ -57,7 +69,7 @@ poly_mcp = FastMCP(
     port=http_port,
 )
 
-# Register all tools by asset class
+# Register REST API tools by asset class
 stocks.register_tools(poly_mcp, polygon_client, json_to_csv)
 options.register_tools(poly_mcp, polygon_client, json_to_csv)
 futures.register_tools(poly_mcp, polygon_client, json_to_csv)
@@ -65,6 +77,14 @@ crypto.register_tools(poly_mcp, polygon_client, json_to_csv)
 forex.register_tools(poly_mcp, polygon_client, json_to_csv)
 economy.register_tools(poly_mcp, polygon_client, json_to_csv)
 indices.register_tools(poly_mcp, polygon_client, json_to_csv)
+
+# Register WebSocket streaming tools
+stocks_ws.register_tools(poly_mcp, connection_manager)
+crypto_ws.register_tools(poly_mcp, connection_manager)
+options_ws.register_tools(poly_mcp, connection_manager)
+futures_ws.register_tools(poly_mcp, connection_manager)
+forex_ws.register_tools(poly_mcp, connection_manager)
+indices_ws.register_tools(poly_mcp, connection_manager)
 
 
 def run(transport: Literal["stdio", "sse", "streamable-http"] = "stdio") -> None:

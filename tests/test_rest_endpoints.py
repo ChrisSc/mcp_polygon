@@ -29,15 +29,15 @@ class TestServerInitialization:
             assert isinstance(server.poly_mcp, FastMCP)
 
     @pytest.mark.asyncio
-    async def test_all_81_tools_registered(self):
-        """Verify exactly 81 tools are registered (Phase 3 complete)."""
+    async def test_all_117_tools_registered(self):
+        """Verify exactly 117 tools are registered (81 REST + 36 WebSocket)."""
         with patch.dict(os.environ, {"POLYGON_API_KEY": "test_key"}):
             from mcp_polygon import server
 
             # Count registered tools
             tools = await server.poly_mcp.list_tools()
             tool_count = len(tools)
-            assert tool_count == 81, f"Expected 81 tools, found {tool_count}"
+            assert tool_count == 117, f"Expected 117 tools (81 REST + 36 WebSocket), found {tool_count}"
 
     @pytest.mark.asyncio
     async def test_tool_distribution_by_asset_class(self):
