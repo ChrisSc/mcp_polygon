@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# Tools
+.ruff_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.claude/
+
+# Docs (keep README.md for package metadata, exclude others)
+docs/
+CLAUDE.md
+CHANGELOG.md
+SECURITY.md
+
+# Environment
+.env
+.env.*
+
+# Assets
+assets/

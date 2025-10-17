@@ -1,6 +1,7 @@
 services:
   mcp_polygon:
     build: .
+    image: mcp_polygon:latest
     volumes:
       - .:/app
     container_name: mcp_polygon_server

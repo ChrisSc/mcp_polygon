@@ -351,6 +351,70 @@ python -c "from src.mcp_polygon.server import poly_mcp; print(list(poly_mcp._too
 ### API wrapper errors not showing context
 **Check**: Ensure you're passing relevant parameters (ticker, from_/to for forex) - the wrapper automatically includes them in error messages
 
+## WebSocket Troubleshooting
+
+### "No messages in buffer" or "Sample Messages (0)"
+
+**Possible Causes:**
+1. **Market is closed** - Stock market hours: 9:30am-4pm ET, Mon-Fri (excluding holidays)
+   - Solution: Check market status with `get_market_status()` tool
+
+2. **Delayed data (15-minute lag)** - Your API plan includes delayed data
+   - Solution: Wait 15 minutes after market events
+   - Check endpoint: Should be `wss://delayed.polygon.io/{market}`
+
+3. **Invalid ticker symbol** - Symbol doesn't exist or is misspelled
+   - Solution: Verify symbol with `list_tickers(search="AAPL")` tool
+
+4. **Connection still initializing** - Buffer fills gradually
+   - Solution: Wait 10-30 seconds, then call `get_{market}_stream_status()`
+
+### "Buffer shows 100/100 but I need more history"
+
+**Explanation:** Buffer is limited to last 100 messages to prevent memory exhaustion.
+
+**Solutions:**
+- **For historical data:** Use REST API tools (`get_aggs`, `list_trades`, `list_quotes`)
+- **For longer buffers:** Modify `connection_manager.py` line ~67: `deque(maxlen=100)` → `deque(maxlen=500)`
+- **For persistent storage:** Export messages to file/database in custom message handler
+
+**Trade-offs:**
+- Larger buffers = more memory usage (~0.5KB per message)
+- 6 markets × 500 buffer = ~1.5MB total (acceptable)
+
+### "Delayed endpoint vs real-time endpoint"
+
+**Error Message:** "You don't have access real-time data"
+
+**Explanation:**
+- Your API plan (Stocks Starter $29/month) includes 15-minute delayed data
+- Real-time data requires higher-tier plans
+- The server automatically uses the correct endpoint based on your API key
+
+**Verification:**
+- Check `start_stocks_stream()` response for endpoint URL
+- Delayed: `wss://delayed.polygon.io/stocks` ✅
+- Real-time: `wss://socket.polygon.io/stocks` (requires upgrade)
+
+**Upgrade:**
+- Visit https://polygon.io/pricing for plan comparison
+- Real-time data available in Starter+ and higher tiers
+
+### "APIAccessError: API Plan Limitation"
+
+**Explanation:** WebSocket connection detected your API plan doesn't include the requested data access level.
+
+**This is expected for:**
+- Stocks Starter plan → 15-minute delayed data (automatic fallback)
+- Free tier → No WebSocket access (upgrade required)
+
+**Solution:** The error message includes:
+1. Link to upgrade: https://polygon.io/pricing
+2. Delayed endpoint (if available for your plan)
+3. Explanation of your current plan capabilities
+
+**No action needed** - The server handles this automatically for delayed data plans.
+
 ## Implementation Status
 
 ### ✅ Phase 1 Complete (2025-10-15): Modular Architecture
@@ -439,6 +503,169 @@ python -c "from src.mcp_polygon.server import poly_mcp; print(list(poly_mcp._too
 - **Key Achievement**: Zero test failures - all 291 tests passing on first implementation
 
 **Next Phase**: Phase 6 (Advanced Features) - Stream buffering, historical replay, multi-symbol optimization (planned)
+
+### WebSocket Message Flow & Buffering (Phase 5.1)
+
+**Message Pipeline:**
+```
+Polygon WebSocket → WebSocketConnection._receive_messages()
+  → Status messages: _handle_status() → logged/trapped for errors
+  → Data messages: → message_buffer (deque, maxlen=100)
+                  → message_handlers[] (for custom processing)
+```
+
+**Message Buffer Architecture:**
+- Each WebSocket connection maintains a circular buffer of recent messages
+- Buffer size: 100 messages per connection (configurable in code)
+- Memory usage: ~50KB per connection, ~300KB total for 6 markets
+- Storage: In-memory only (not persisted to disk)
+- Behavior: FIFO (First-In-First-Out) - oldest messages automatically dropped when full
+- Thread safety: Python asyncio + deque provides sufficient protection
+- Lifecycle: Cleared on disconnect, counter persists across reconnections
+
+**What's Buffered:**
+- ✅ Trade messages (T.*, XT.*, etc.)
+- ✅ Quote messages (Q.*, XQ.*, etc.)
+- ✅ Aggregate messages (AM.*, A.*, etc.)
+- ✅ Index values (V.I:*)
+- ✅ LULD messages (LULD.*)
+- ✅ Fair market value (FMV.*)
+- ❌ Status messages (excluded to reduce noise)
+
+**Retrieving Messages:**
+
+The buffer is automatically accessed by all start_*_stream() tools, which now display:
+- Total messages received (lifetime counter)
+- Current buffer fill level
+- Sample of recent messages (formatted for readability)
+
+**API Methods:**
+```python
+# Get last N messages from connection
+recent = connection.get_recent_messages(limit=10)  # Returns List[dict]
+
+# Get buffer statistics
+stats = connection.get_message_stats()
+# Returns: {
+#   "total_received": 1250,  # All messages since connection
+#   "buffered": 100,         # Current buffer size
+#   "buffer_capacity": 100   # Max buffer size
+# }
+
+# Clear buffer manually (usually automatic on disconnect)
+connection.clear_message_buffer()
+```
+
+**Example Tool Response:**
+```
+✓ Started stocks WebSocket stream
+Endpoint: wss://delayed.polygon.io/stocks
+Channels: T.AAPL, Q.AAPL
+
+Message Stats:
+- Total received: 47
+- Buffered: 47/100
+
+Sample Messages (5):
+[Trade] AAPL @ 15:45:23 - $150.25, 100 shares
+[Quote] AAPL @ 15:45:24 - Bid: $150.20, Ask: $150.30
+[Trade] AAPL @ 15:45:25 - $150.30, 200 shares
+[Quote] AAPL @ 15:45:26 - Bid: $150.25, Ask: $150.35
+[Trade] AAPL @ 15:45:27 - $150.28, 150 shares
+
+Stream is now active. Use get_stocks_stream_status() to check buffer state.
+```
+
+**Memory Management:**
+- Per-connection limit: 100 messages (~50KB)
+- Global limit: 6 markets × 50KB = 300KB total
+- High-frequency protection: Circular buffer auto-evicts oldest
+- Container limit: Docker mem_limit recommended (512MB)
+- No memory leaks: Buffer cleared on disconnect
+
+## Message Buffer API (connection_manager.py)
+
+### Methods
+
+**`get_recent_messages(limit: int = 10) -> List[dict]`**
+
+Returns the N most recent data messages from the buffer.
+
+**Args:**
+- `limit` (int): Number of messages to retrieve (default: 10, max: buffer size)
+
+**Returns:**
+- `List[dict]`: Message dictionaries in chronological order (oldest first)
+- Empty list if buffer is empty
+
+**Example:**
+```python
+recent = connection.get_recent_messages(limit=5)
+for msg in recent:
+    print(f"{msg['ev']} - {msg.get('sym', 'N/A')} @ {msg.get('p', 'N/A')}")
+
+# Output:
+# T - AAPL @ 150.25
+# Q - AAPL @ N/A
+# T - MSFT @ 300.50
+```
+
+---
+
+**`get_message_stats() -> dict`**
+
+Returns message reception statistics.
+
+**Returns:**
+```python
+{
+    "total_received": 1250,    # Total messages since connection
+    "buffered": 100,           # Current buffer size
+    "buffer_capacity": 100     # Maximum buffer size
+}
+```
+
+**Example:**
+```python
+stats = connection.get_message_stats()
+print(f"Received {stats['total_received']} messages")
+print(f"Buffer {stats['buffered']}/{stats['buffer_capacity']} full")
+```
+
+---
+
+**`clear_message_buffer() -> None`**
+
+Clears the message buffer. Called automatically on disconnect.
+
+**Note:** The `_total_messages_received` counter is NOT reset, allowing tracking across reconnections.
+
+**Example:**
+```python
+connection.clear_message_buffer()
+assert len(connection.message_buffer) == 0
+```
+
+---
+
+**`message_buffer: deque`**
+
+Direct access to the message buffer (advanced usage).
+
+**Type:** `collections.deque` with `maxlen=100`
+**Contains:** Data messages only (status messages excluded)
+**Thread Safety:** Safe for single async writer, multiple readers
+
+**Example:**
+```python
+# Iterate over all buffered messages
+for msg in connection.message_buffer:
+    process_message(msg)
+
+# Check buffer fill level
+fill_percent = len(connection.message_buffer) / connection.message_buffer.maxlen * 100
+print(f"Buffer {fill_percent:.1f}% full")
+```
 
 ## Key Implementation Details
 
