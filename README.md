@@ -41,17 +41,28 @@ The MCP server is organized into a modular architecture for scalability and main
 
 ```
 src/mcp_polygon/
-├── server.py          # Main MCP server (49 lines) - orchestrates tool registration
+├── server.py          # Main MCP server - orchestrates tool registration
 ├── api_wrapper.py     # Centralized API error handling and response formatting
 ├── formatters.py      # CSV output formatting utilities
-└── tools/             # Tool implementations by asset class
-    ├── stocks.py      # Stock market tools (42 tools)
-    ├── futures.py     # Futures market tools (11 tools)
-    ├── crypto.py      # Cryptocurrency tools (6 tools)
-    ├── forex.py       # Forex market tools (6 tools)
-    ├── options.py     # Options market tools (8 tools)
-    ├── indices.py     # Market indices tools (5 tools)
-    └── economy.py     # Economic indicators (3 tools)
+├── validation.py      # Shared validation functions (date validation, future date prevention)
+└── tools/             # Tool implementations
+    ├── rest/          # 81 REST API tools
+    │   ├── stocks.py      # Stock market tools (47 tools)
+    │   ├── futures.py     # Futures market tools (11 tools)
+    │   ├── crypto.py      # Cryptocurrency tools (7 tools)
+    │   ├── forex.py       # Forex market tools (6 tools)
+    │   ├── options.py     # Options market tools (9 tools)
+    │   ├── indices.py     # Market indices tools (5 tools)
+    │   └── economy.py     # Economic indicators (3 tools)
+    └── websockets/    # 36 WebSocket streaming tools
+        ├── connection_manager.py  # Connection lifecycle and management
+        ├── stream_formatter.py    # JSON message formatting
+        ├── stocks.py              # Stock streaming (6 tools)
+        ├── crypto.py              # Crypto streaming (6 tools)
+        ├── options.py             # Options streaming (6 tools)
+        ├── futures.py             # Futures streaming (6 tools)
+        ├── forex.py               # Forex streaming (6 tools)
+        └── indices.py             # Indices streaming (6 tools)
 ```
 
 ### Tool Distribution
