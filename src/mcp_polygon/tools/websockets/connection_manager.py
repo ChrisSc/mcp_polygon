@@ -101,19 +101,26 @@ class WebSocketConnection:
         await self.websocket.send(json.dumps(auth_message))
         logger.debug("→ Authentication message sent")
 
-        # Wait for auth success
-        response = await self.websocket.recv()
-        messages = json.loads(response)
+        # Wait for auth success - may receive multiple messages
+        # First message might be connection status, then auth response
+        max_attempts = 5
+        for attempt in range(max_attempts):
+            response = await self.websocket.recv()
+            messages = json.loads(response)
 
-        for msg in messages:
-            if msg.get("ev") == "status":
-                if msg.get("status") == "auth_success":
-                    logger.info("✓ Authentication successful")
-                    return
-                elif msg.get("status") == "auth_failed":
-                    raise Exception(f"Authentication failed: {msg.get('message')}")
+            for msg in messages:
+                if msg.get("ev") == "status":
+                    status = msg.get("status")
+                    if status == "auth_success":
+                        logger.info("✓ Authentication successful")
+                        return
+                    elif status == "auth_failed":
+                        raise Exception(f"Authentication failed: {msg.get('message')}")
+                    elif status == "connected":
+                        logger.debug("Received connection status, waiting for auth response")
+                        continue
 
-        raise Exception("No authentication response received")
+        raise Exception("No authentication response received after multiple attempts")
 
     async def subscribe(self, channels: List[str]) -> None:
         """

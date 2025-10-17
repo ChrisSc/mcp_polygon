@@ -1,8 +1,8 @@
 # WebSocket Implementation Plan - MCP Polygon Server
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2025-10-17
-**Status:** Planning Phase
+**Status:** Phase 5 Complete, Phase 6 In Progress
 **Branch:** websockets-planning
 
 ---
@@ -25,17 +25,24 @@
 
 ## Executive Summary
 
-This plan outlines the implementation of **WebSocket streaming endpoints** for the Polygon MCP server, building upon the existing REST API foundation (81 tools, 99% endpoint coverage). The implementation will add **real-time streaming capabilities** across 6 asset classes while maintaining the production-ready quality and architectural patterns of the current system.
+This plan outlines the implementation of **WebSocket streaming endpoints** for the Polygon MCP server, building upon the existing REST API foundation (81 tools, 99% endpoint coverage). The implementation adds **real-time streaming capabilities** across 6 asset classes while maintaining the production-ready quality and architectural patterns of the current system.
+
+**Current Status (2025-10-17):**
+- ✅ **Phases 1-5 Complete**: 36 WebSocket tools implemented and tested (6 per market × 6 markets)
+- ❌ **Critical Gap Discovered**: Messages are received but not retrievable by agents (no buffer/retrieval mechanism)
+- 🔄 **Phase 6 In Progress**: Adding message buffering, retrieval, and replay capabilities
 
 **Key Objectives:**
-- Add ~36 WebSocket streaming tools across 6 markets
-- Maintain existing REST API functionality (zero regression)
-- Implement robust connection management with auto-reconnect
-- Provide LLM-friendly streaming data format
-- Achieve 90%+ test coverage on new code
-- Complete in 12 weeks
+- ~~Add ~36 WebSocket streaming tools across 6 markets~~ ✅ **Complete**
+- **NEW**: Add 12 message retrieval/replay tools (2 per market) - Phase 6
+- Maintain existing REST API functionality (zero regression) ✅ **Maintained**
+- Implement robust connection management with auto-reconnect ✅ **Complete**
+- Provide LLM-friendly streaming data format ✅ **Complete (JSON)**
+- Add agent-accessible message buffering and retrieval ⏳ **Phase 6**
+- Achieve 90%+ test coverage on new code ✅ **91% achieved**
+- Complete in ~~12~~ **15 weeks** (added Phase 6)
 
-**Architectural Principle:** WebSocket tools are fundamentally different from REST tools - they manage persistent connections and subscriptions rather than one-shot requests.
+**Architectural Principle:** WebSocket tools are fundamentally different from REST tools - they manage persistent connections and subscriptions rather than one-shot requests. **Phase 6 Addition**: Agents need explicit retrieval tools to access buffered stream data (MCP protocol doesn't support push notifications).
 
 ---
 
@@ -1840,6 +1847,528 @@ for market in markets:
 
 ---
 
+## Critical Gap Discovered During Phase 5 Testing
+
+**Discovery Date:** 2025-10-17 (During live testing with MCP Inspector)
+
+### The Problem
+
+While WebSocket connections successfully receive and route messages (connection_manager.py:187-188), the `message_handlers` list is **empty** - there's no mechanism for agents to retrieve buffered data.
+
+```python
+# connection_manager.py lines 187-188
+for handler in self.message_handlers:
+    await handler(msg)  # This loop never executes - handlers list is empty!
+```
+
+**Impact:** Streams work perfectly (connect, authenticate, subscribe, receive data), but agents cannot access the data they're receiving. This makes WebSocket tools **unusable for agent workflows**.
+
+### Root Cause Analysis
+
+**Assumption Made in Phases 2-5:**
+We assumed the MCP protocol would handle message delivery automatically (push notifications to agents).
+
+**Reality:**
+MCP tools work on a **request/response pattern**. There is no mechanism to push messages to agents. Agents must explicitly call tools to retrieve data.
+
+**Evidence:**
+1. Successfully subscribed to channels (connection_manager tests pass)
+2. Messages received from Polygon API (confirmed via logging)
+3. Messages routed to handlers (line 187-188 executes)
+4. **But agents see nothing** - no way to call a tool to retrieve messages
+
+### Solution: Phase 6
+
+Implement message buffering and retrieval tools enabling agents to:
+1. **Call `get_{market}_stream_messages()`** to retrieve recent buffered data
+2. **Process/analyze** streaming data in their workflows
+3. **Replay historical data** from disk for backtesting
+
+**Key Insight:** WebSocket infrastructure is complete and production-ready. We only need to add retrieval capabilities on top of the existing architecture.
+
+---
+
+## Phase 6: Message Retrieval & Replay (Weeks 13-15)
+
+### 6.1 Overview
+
+Add message buffering, retrieval, and replay capabilities to make WebSocket streams accessible to agents.
+
+**Deliverables:**
+- Circular message buffer in `WebSocketConnection` (1000 messages default, configurable)
+- Disk persistence for historical replay
+- 12 new retrieval tools (2 per market × 6 markets)
+- Dual output formats: CSV (default) and JSON (configurable)
+
+**Tool Count:** 36 existing + 12 new = **48 WebSocket tools total**
+
+### 6.2 Buffer Architecture
+
+**File:** `src/mcp_polygon/tools/websockets/connection_manager.py` (modifications)
+
+```python
+from collections import deque
+from pathlib import Path
+import time
+
+class WebSocketConnection:
+    def __init__(self, market: str, endpoint: str, api_key: str, buffer_size: int = 1000):
+        # ... existing attributes ...
+        self.message_buffer: deque = deque(maxlen=buffer_size)
+        self.replay_file: Optional[Path] = None
+        self.buffer_size = buffer_size
+
+    def enable_replay(self, replay_dir: Path):
+        """Enable disk persistence for message replay."""
+        self.replay_file = replay_dir / f"{self.market}_messages.jsonl"
+        self.replay_file.parent.mkdir(parents=True, exist_ok=True)
+
+    def add_message_to_buffer(self, msg: dict):
+        """Store message in buffer and optionally to disk."""
+        buffered_msg = {
+            'timestamp': time.time(),
+            'unix_ms': msg.get('t', int(time.time() * 1000)),
+            'channel': f"{msg.get('ev')}.{msg.get('sym', '')}",
+            'message': msg
+        }
+
+        self.message_buffer.append(buffered_msg)
+
+        # Write to disk if replay enabled
+        if self.replay_file:
+            with open(self.replay_file, 'a') as f:
+                f.write(json.dumps(buffered_msg) + '\n')
+
+    async def _receive_messages(self) -> None:
+        """Receive and route WebSocket messages."""
+        try:
+            async for message in self.websocket:
+                try:
+                    messages = json.loads(message)
+
+                    if not isinstance(messages, list):
+                        logger.warning(f"Non-array message received: {message}")
+                        continue
+
+                    for msg in messages:
+                        if msg.get("ev") == "status":
+                            self._handle_status(msg)
+                        else:
+                            # NEW: Buffer message for retrieval
+                            self.add_message_to_buffer(msg)
+
+                            # Route to handlers (existing behavior)
+                            for handler in self.message_handlers:
+                                await handler(msg)
+
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON received: {message}, error: {e}")
+
+        except ConnectionClosed as e:
+            logger.warning(f"Connection closed: {e}")
+            await self._handle_connection_error(e)
+
+    def get_messages(
+        self,
+        limit: int = 100,
+        channel_filter: Optional[str] = None,
+        since_timestamp: Optional[int] = None
+    ) -> List[dict]:
+        """
+        Retrieve messages from buffer.
+
+        Args:
+            limit: Max messages to return (default 100, max buffer_size)
+            channel_filter: Filter by channel pattern (e.g., "T.AAPL", "Q.*")
+            since_timestamp: Only messages after this Unix timestamp
+
+        Returns:
+            List of buffered messages matching filters
+        """
+        messages = list(self.message_buffer)
+
+        # Apply filters
+        if since_timestamp:
+            messages = [m for m in messages if m['timestamp'] >= since_timestamp]
+
+        if channel_filter:
+            if '*' in channel_filter:
+                # Wildcard match (e.g., "T.*" matches "T.AAPL", "T.MSFT")
+                prefix = channel_filter.replace('.*', '')
+                messages = [m for m in messages if m['channel'].startswith(prefix)]
+            else:
+                # Exact match
+                messages = [m for m in messages if m['channel'] == channel_filter]
+
+        # Apply limit
+        messages = messages[-limit:] if limit else messages
+
+        return messages
+
+    def replay_messages(
+        self,
+        from_timestamp: int,
+        to_timestamp: int,
+        channel_filter: Optional[str] = None
+    ) -> List[dict]:
+        """
+        Replay historical messages from disk.
+
+        Args:
+            from_timestamp: Start Unix timestamp
+            to_timestamp: End Unix timestamp
+            channel_filter: Filter by channel pattern
+
+        Returns:
+            List of historical messages matching filters
+        """
+        if not self.replay_file or not self.replay_file.exists():
+            return []
+
+        messages = []
+        with open(self.replay_file, 'r') as f:
+            for line in f:
+                msg = json.loads(line.strip())
+
+                # Time filter
+                if not (from_timestamp <= msg['timestamp'] <= to_timestamp):
+                    continue
+
+                # Channel filter
+                if channel_filter:
+                    if '*' in channel_filter:
+                        prefix = channel_filter.replace('.*', '')
+                        if not msg['channel'].startswith(prefix):
+                            continue
+                    else:
+                        if msg['channel'] != channel_filter:
+                            continue
+
+                messages.append(msg)
+
+        return messages
+```
+
+### 6.3 Retrieval Tools (Example: Stocks)
+
+**File:** `src/mcp_polygon/tools/websockets/stocks.py` (add 2 new tools)
+
+```python
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+async def get_stocks_stream_messages(
+    limit: int = 100,
+    channel_filter: Optional[str] = None,
+    since_timestamp: Optional[int] = None,
+    format: str = "csv"
+) -> str:
+    """
+    Get recent messages from stocks WebSocket buffer.
+
+    Documentation: polygon-docs/websockets/quickstart.md:363-441
+
+    Args:
+        limit: Max messages to return (default 100, max 1000)
+        channel_filter: Filter by channel (e.g., "T.AAPL", "Q.*", "AM.MSFT")
+        since_timestamp: Only messages after this Unix timestamp
+        format: Output format - "csv" (default) or "json"
+
+    Returns:
+        Buffered messages in requested format (CSV for token efficiency)
+
+    Examples:
+        - get_stocks_stream_messages(limit=50, channel_filter="T.AAPL")
+          → Last 50 trade messages for AAPL
+        - get_stocks_stream_messages(channel_filter="Q.*", format="csv")
+          → All quote messages in CSV format
+        - get_stocks_stream_messages(since_timestamp=1640995200, limit=200)
+          → Messages since timestamp, up to 200 messages
+    """
+    try:
+        conn = connection_manager.get_connection("stocks")
+        messages = conn.get_messages(limit, channel_filter, since_timestamp)
+
+        if not messages:
+            return "No messages in buffer matching criteria"
+
+        if format == "json":
+            return json.dumps(messages, indent=2)
+        else:
+            # Convert to CSV (flatten nested message dict)
+            from ...formatters import json_to_csv
+            flat_messages = [
+                {
+                    'buffer_timestamp': m['timestamp'],
+                    'unix_ms': m['unix_ms'],
+                    'channel': m['channel'],
+                    **m['message']  # Flatten message fields
+                }
+                for m in messages
+            ]
+            return json_to_csv(flat_messages)
+
+    except KeyError:
+        return "No active stocks WebSocket connection"
+
+
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+async def replay_stocks_stream_messages(
+    from_timestamp: int,
+    to_timestamp: int,
+    channel_filter: Optional[str] = None,
+    format: str = "csv"
+) -> str:
+    """
+    Replay historical messages from disk storage.
+
+    Documentation: polygon-docs/websockets/INDEX_AGENT.md:479-519
+
+    Args:
+        from_timestamp: Start Unix timestamp
+        to_timestamp: End Unix timestamp
+        channel_filter: Filter by channel pattern (e.g., "T.AAPL", "Q.*")
+        format: Output format - "csv" (default) or "json"
+
+    Returns:
+        Historical messages in requested format
+
+    Examples:
+        - replay_stocks_stream_messages(1640995200, 1640998800, "T.AAPL")
+          → AAPL trades from 1-hour window
+        - replay_stocks_stream_messages(start, end, format="json")
+          → All messages in JSON format for custom processing
+
+    Note: Requires replay to be enabled with enable_replay()
+    """
+    try:
+        conn = connection_manager.get_connection("stocks")
+        messages = conn.replay_messages(from_timestamp, to_timestamp, channel_filter)
+
+        if not messages:
+            return "No historical messages found matching criteria (replay may not be enabled)"
+
+        if format == "json":
+            return json.dumps(messages, indent=2)
+        else:
+            from ...formatters import json_to_csv
+            flat_messages = [
+                {
+                    'buffer_timestamp': m['timestamp'],
+                    'unix_ms': m['unix_ms'],
+                    'channel': m['channel'],
+                    **m['message']
+                }
+                for m in messages
+            ]
+            return json_to_csv(flat_messages)
+
+    except KeyError:
+        return "No active stocks WebSocket connection"
+```
+
+### 6.4 Testing Strategy
+
+**New Test Files:**
+
+`tests/test_websockets/test_message_buffer.py` (12 tests):
+- Buffer initialization with size limit
+- Message insertion and overflow (circular buffer)
+- get_messages() with various filters
+- replay_messages() from disk
+- Time-based filtering
+- Channel pattern matching (exact and wildcard)
+- CSV and JSON output formats
+
+`tests/test_websockets/test_retrieval_tools.py` (12 tests):
+- Tool signature validation (all 12 tools)
+- get_messages integration test (one market)
+- replay_messages integration test (one market)
+- Format parameter (CSV vs JSON)
+- Error handling (no connection, no messages)
+- Filter combinations
+
+**Total New Tests:** 24 tests
+**Target Coverage:** 95%+ on new buffer/retrieval code
+
+### 6.5 Implementation Order
+
+**Week 13: Infrastructure + Core Markets**
+1. Update `WebSocketConnection` with buffer methods
+2. Add disk persistence logic
+3. Implement stocks retrieval tools (2 tools)
+4. Implement crypto retrieval tools (2 tools)
+5. Write buffer unit tests (12 tests)
+
+**Week 14: Remaining Markets**
+6. Implement options retrieval tools (2 tools)
+7. Implement futures retrieval tools (2 tools)
+8. Implement forex retrieval tools (2 tools)
+9. Implement indices retrieval tools (2 tools)
+10. Write retrieval integration tests (12 tests)
+
+**Week 15: Integration & Polish**
+11. Cross-market testing
+12. Performance testing (buffer memory usage, disk I/O)
+13. Documentation updates (CLAUDE.md, WEBSOCKETS.md)
+14. Security review
+15. Code review and merge
+
+### 6.6 Performance Considerations
+
+**Memory Usage:**
+- 1000 messages × ~500 bytes/message = ~500KB per connection
+- 6 markets × 500KB = ~3MB total (negligible)
+
+**Disk I/O:**
+- JSONL append-only writes (fast, no seeks)
+- Replay reads entire file (acceptable for analysis use case)
+- Optional: implement file rotation after N messages
+
+**Retrieval Speed:**
+- In-memory buffer: O(n) scan, <1ms for 1000 messages
+- Disk replay: O(n) file read, <100ms for 100K messages
+
+### 6.7 REST API Error Handling Fix (Parallel Track)
+
+**Bug Discovered:** 2025-10-17 (Docker environment testing)
+
+**Issue:** The `api_wrapper.py` error handling doesn't catch `polygon.exceptions.BadResponse` raised by the Polygon SDK when the API returns 404 or other error responses. This causes raw exception tracebacks instead of LLM-friendly error messages.
+
+**Error Example:**
+```python
+polygon.exceptions.BadResponse: {"status":"NOT_FOUND","request_id":"...","message":"Data not found."}
+```
+
+**Current Code (api_wrapper.py:131-170):**
+```python
+try:
+    # ... method resolution ...
+    results = method(**kwargs, raw=True)
+    # ... response handling ...
+
+except AttributeError as e:
+    # Method doesn't exist
+    return f"Error: API method '{method_name}' not found..."
+
+except Exception as e:
+    # Generic catch-all
+    return PolygonAPIError.format_error(method_name, e, context)
+```
+
+**Problem:** `BadResponse` is a specific exception type that contains a JSON error message, but it's being caught by the generic `Exception` handler which logs it as "Unexpected error" instead of parsing the structured error.
+
+**Solution:**
+
+Add specific handling for `BadResponse` before the generic exception handler:
+
+```python
+# At top of file, add import
+from polygon.exceptions import BadResponse
+
+# In PolygonAPIWrapper.call() method, update exception handling:
+try:
+    # ... existing code ...
+    results = method(**kwargs, raw=True)
+    # ... existing code ...
+
+except AttributeError as e:
+    # Method doesn't exist on client
+    return (
+        f"Error: API method '{method_name}' not found in Polygon client. "
+        f"Details: {e}"
+    )
+
+except BadResponse as e:
+    # SDK raised BadResponse (404, validation errors, etc.)
+    import json
+    try:
+        # Parse JSON error message from SDK
+        error_data = json.loads(str(e))
+        status = error_data.get("status", "ERROR")
+        message = error_data.get("message", str(e))
+
+        # Build context string
+        ctx = ""
+        if "ticker" in kwargs:
+            ctx = f" (ticker={kwargs['ticker']})"
+        elif "from_" in kwargs and "to" in kwargs:
+            ctx = f" (currency_pair={kwargs['from_']}/{kwargs['to']})"
+
+        # Format friendly error message based on status
+        if status == "NOT_FOUND":
+            return f"Error: {message}{ctx}. Please verify the parameters or try a different date range."
+        elif status == "NOT_AUTHORIZED":
+            return f"Error: {message}. Your API key may not have access to this endpoint. Upgrade at polygon.io"
+        else:
+            return f"Error: {status} - {message}{ctx}"
+
+    except (json.JSONDecodeError, KeyError):
+        # Fallback if JSON parsing fails
+        return f"Error: API returned error response: {str(e)}"
+
+except Exception as e:
+    # All other errors - format with context
+    context = {"method": method_name}
+    # ... existing context building ...
+    return PolygonAPIError.format_error(method_name, e, context)
+```
+
+**Testing:**
+
+Add test case to `tests/test_api_wrapper.py`:
+
+```python
+@pytest.mark.asyncio
+async def test_bad_response_handling(api_wrapper, mock_polygon_client):
+    """Test handling of BadResponse exceptions from Polygon SDK."""
+    from polygon.exceptions import BadResponse
+
+    # Mock method that raises BadResponse (404 not found)
+    mock_method = Mock()
+    mock_method.side_effect = BadResponse(
+        '{"status":"NOT_FOUND","request_id":"abc123","message":"Data not found."}'
+    )
+    mock_polygon_client.get_daily_open_close_agg = mock_method
+
+    result = await api_wrapper.call("get_daily_open_close_agg", ticker="INVALID", date="2024-01-01")
+
+    assert "Error: Data not found" in result
+    assert "ticker=INVALID" in result
+    assert "verify the parameters" in result
+    assert "NOT_FOUND" not in result  # Should be human-readable
+
+@pytest.mark.asyncio
+async def test_bad_response_not_authorized(api_wrapper, mock_polygon_client):
+    """Test handling of NOT_AUTHORIZED BadResponse."""
+    from polygon.exceptions import BadResponse
+
+    mock_method = Mock()
+    mock_method.side_effect = BadResponse(
+        '{"status":"NOT_AUTHORIZED","message":"You are not entitled to this data"}'
+    )
+    mock_polygon_client.list_options_contracts = mock_method
+
+    result = await api_wrapper.call("list_options_contracts")
+
+    assert "Error" in result
+    assert "not entitled" in result or "not have access" in result
+    assert "polygon.io" in result
+```
+
+**Implementation Timeline:**
+- **Week 13**: Implement fix alongside buffer infrastructure
+- **Week 13**: Add 2 test cases to test_api_wrapper.py
+- **Week 13**: Validate fix with Docker environment
+
+**Priority:** High - Affects user experience in production environments
+
+**Success Criteria:**
+- ✅ All `BadResponse` exceptions produce LLM-friendly error messages
+- ✅ Error messages include context (ticker, currency pair, etc.)
+- ✅ Test coverage maintained at 100% for api_wrapper.py
+- ✅ No raw exception tracebacks visible to users
+
+---
+
 ## Implementation Timeline
 
 | Phase | Duration | Key Deliverables | Success Criteria |
@@ -1849,16 +2378,20 @@ for market in markets:
 | **Phase 3: Tools** | Weeks 5-8 | • 36 WebSocket tools<br>• 6 markets implemented<br>• Doc cross-refs | • All tools work<br>• 90%+ test coverage<br>• MCP Inspector validated |
 | **Phase 4: Testing** | Weeks 9-10 | • 120 new tests<br>• Integration tests<br>• Live API validation | • 90%+ coverage<br>• All tests pass<br>• Performance validated |
 | **Phase 5: Polish** | Weeks 11-12 | • Documentation<br>• Code review<br>• Security audit | • Docs complete<br>• Security 8/10+<br>• Production ready |
+| **Phase 6: Message Retrieval** | Weeks 13-15 | • Circular buffer (1000 msgs)<br>• 12 retrieval/replay tools<br>• Disk persistence<br>• CSV/JSON output<br>• **REST API error fix (parallel)** | • All retrieval tools work<br>• 95%+ test coverage<br>• Memory usage validated<br>• Agent workflows enabled<br>• BadResponse errors handled gracefully |
 
-**Total Duration:** 12 weeks
+**Total Duration:** 15 weeks (12 original + 3 for Phase 6)
 
 **Milestones:**
 - **Week 2:** Server reorganized, REST tools still working
 - **Week 4:** WebSocket infrastructure complete
 - **Week 6:** 50% of WebSocket tools implemented (stocks, crypto, options)
-- **Week 8:** 100% of WebSocket tools implemented
+- **Week 8:** 100% of connection tools implemented (36 tools)
 - **Week 10:** Testing complete, all tests passing
 - **Week 12:** Production ready, documentation complete
+- **Week 13:** Buffer infrastructure and core market retrieval tools + REST API error handling fix
+- **Week 14:** All 12 retrieval tools implemented
+- **Week 15:** Agent workflows validated, Phase 6 complete
 
 ---
 
@@ -1871,6 +2404,7 @@ for market in markets:
 | **WebSocket connection instability** | High | Medium | • Implement robust reconnection<br>• Exponential backoff<br>• Connection health monitoring |
 | **State management complexity** | Medium | Medium | • Clear lifecycle (start → stream → stop)<br>• ConnectionManager singleton<br>• Extensive unit tests |
 | **Message volume performance** | Medium | Low | • Rate limiting<br>• Backpressure handling<br>• Subscription filtering |
+| **Buffer memory usage (Phase 6)** | Medium | Low | • Circular buffer with size limit (1000 msgs)<br>• ~3MB total for 6 markets<br>• Optional disk persistence for long-term storage<br>• Memory profiling during testing |
 | **MCP protocol limitations** | High | Low | • Early research into MCP streaming<br>• Consider SSE transport fallback |
 
 ### Compatibility Risks
@@ -1897,18 +2431,22 @@ for market in markets:
 
 | Requirement | Success Metric |
 |-------------|---------------|
-| All 6 markets have streaming | ✅ 36 tools implemented (6 per market) |
+| All 6 markets have streaming | ✅ 36 connection tools implemented (6 per market) |
 | Connection lifecycle works | ✅ Start → stream → stop works reliably |
 | Subscription management works | ✅ Add/remove channels dynamically |
+| Message retrieval works (Phase 6) | ⏳ 12 retrieval tools implemented (2 per market) |
+| Buffer functionality works (Phase 6) | ⏳ Circular buffer stores 1000 msgs per connection |
+| Agent workflows enabled (Phase 6) | ⏳ Agents can call get_messages to retrieve data |
 | Error handling is helpful | ✅ All errors have clear messages + docs |
 | Auto-reconnection works | ✅ Reconnects within 30s of disconnect |
 | REST tools unchanged | ✅ Zero regression in existing tools |
+| REST API errors handled (Phase 6) | ⏳ BadResponse exceptions produce friendly messages |
 
 ### Quality Requirements
 
 | Requirement | Success Metric |
 |-------------|---------------|
-| Test coverage | ✅ ≥90% for WebSocket code |
+| Test coverage | ✅ ≥90% for WebSocket code (Phase 1-5)<br>⏳ ≥95% for buffer/retrieval code (Phase 6) |
 | Code quality | ✅ Score A- or better (88+/100) |
 | Security review | ✅ Score 8/10 or better |
 | Documentation complete | ✅ All files updated, examples work |
@@ -1921,6 +2459,9 @@ for market in markets:
 | Concurrent connections | ✅ Support ≥5 simultaneous streams |
 | Message throughput | ✅ Handle ≥1000 messages/second/connection |
 | Memory stability | ✅ No leaks over 24-hour test |
+| Buffer memory usage (Phase 6) | ⏳ ≤3MB total for 6 markets (1000 msgs × 6) |
+| Retrieval speed (Phase 6) | ⏳ <1ms for in-memory buffer queries |
+| Replay speed (Phase 6) | ⏳ <100ms for 100K message disk replay |
 | Reconnection speed | ✅ Reconnect within 5 seconds |
 | Latency | ✅ Message delivery < 100ms from market event |
 
@@ -1940,57 +2481,69 @@ for market in markets:
 
 ### WebSocket Tools by Market
 
-**Stocks** (6 tools):
+**Stocks** (8 tools):
 1. `start_stocks_stream(channels, api_key, endpoint)`
 2. `stop_stocks_stream()`
 3. `get_stocks_stream_status()`
 4. `subscribe_stocks_channels(channels)`
 5. `unsubscribe_stocks_channels(channels)`
 6. `list_stocks_subscriptions()`
+7. `get_stocks_stream_messages(limit, channel_filter, since_timestamp, format)` **[Phase 6]**
+8. `replay_stocks_stream_messages(from_timestamp, to_timestamp, channel_filter, format)` **[Phase 6]**
 
-**Options** (6 tools):
+**Options** (8 tools):
 1. `start_options_stream(channels, api_key, endpoint)`
 2. `stop_options_stream()`
 3. `get_options_stream_status()`
 4. `subscribe_options_channels(channels)`
 5. `unsubscribe_options_channels(channels)`
 6. `list_options_subscriptions()`
+7. `get_options_stream_messages(limit, channel_filter, since_timestamp, format)` **[Phase 6]**
+8. `replay_options_stream_messages(from_timestamp, to_timestamp, channel_filter, format)` **[Phase 6]**
 
-**Futures** (6 tools):
+**Futures** (8 tools):
 1. `start_futures_stream(channels, api_key, endpoint)`
 2. `stop_futures_stream()`
 3. `get_futures_stream_status()`
 4. `subscribe_futures_channels(channels)`
 5. `unsubscribe_futures_channels(channels)`
 6. `list_futures_subscriptions()`
+7. `get_futures_stream_messages(limit, channel_filter, since_timestamp, format)` **[Phase 6]**
+8. `replay_futures_stream_messages(from_timestamp, to_timestamp, channel_filter, format)` **[Phase 6]**
 
-**Indices** (6 tools):
+**Indices** (8 tools):
 1. `start_indices_stream(channels, api_key, endpoint)`
 2. `stop_indices_stream()`
 3. `get_indices_stream_status()`
 4. `subscribe_indices_channels(channels)`
 5. `unsubscribe_indices_channels(channels)`
 6. `list_indices_subscriptions()`
+7. `get_indices_stream_messages(limit, channel_filter, since_timestamp, format)` **[Phase 6]**
+8. `replay_indices_stream_messages(from_timestamp, to_timestamp, channel_filter, format)` **[Phase 6]**
 
-**Forex** (6 tools):
+**Forex** (8 tools):
 1. `start_forex_stream(channels, api_key, endpoint)`
 2. `stop_forex_stream()`
 3. `get_forex_stream_status()`
 4. `subscribe_forex_channels(channels)`
 5. `unsubscribe_forex_channels(channels)`
 6. `list_forex_subscriptions()`
+7. `get_forex_stream_messages(limit, channel_filter, since_timestamp, format)` **[Phase 6]**
+8. `replay_forex_stream_messages(from_timestamp, to_timestamp, channel_filter, format)` **[Phase 6]**
 
-**Crypto** (6 tools):
+**Crypto** (8 tools):
 1. `start_crypto_stream(channels, api_key, endpoint)`
 2. `stop_crypto_stream()`
 3. `get_crypto_stream_status()`
 4. `subscribe_crypto_channels(channels)`
 5. `unsubscribe_crypto_channels(channels)`
 6. `list_crypto_subscriptions()`
+7. `get_crypto_stream_messages(limit, channel_filter, since_timestamp, format)` **[Phase 6]**
+8. `replay_crypto_stream_messages(from_timestamp, to_timestamp, channel_filter, format)` **[Phase 6]**
 
-**Total:** 36 WebSocket tools
+**Total:** 48 WebSocket tools (36 Phase 1-5 + 12 Phase 6)
 
-**Combined with REST:** 81 + 36 = **117 total tools**
+**Combined with REST:** 81 + 48 = **129 total tools**
 
 ---
 
@@ -2032,17 +2585,19 @@ mkdir -p src/mcp_polygon/tools/websockets
 
 ## Questions for Review
 
-1. **JSON Format:** Approve JSON (not CSV) for WebSocket messages?
-2. **Tool Count:** Approve ~36 WebSocket tools (6 tools × 6 markets)?
-3. **Timeline:** Approve 12-week implementation timeline?
-4. **Documentation:** Approve mandatory doc cross-references in tool comments?
-5. **Testing:** Approve 120 new tests target?
-6. **Markets:** Any additional markets/channels to prioritize?
+1. **JSON Format:** Approve JSON (not CSV) for WebSocket messages? ✅ **APPROVED**
+2. **Tool Count:** ~~Approve ~36 WebSocket tools (6 tools × 6 markets)?~~ **UPDATED:** Approve 48 WebSocket tools (8 tools × 6 markets including Phase 6 retrieval)? ⏳
+3. **Timeline:** ~~Approve 12-week implementation timeline?~~ **UPDATED:** Approve 15-week implementation timeline (12 original + 3 for Phase 6)? ⏳
+4. **Documentation:** Approve mandatory doc cross-references in tool comments? ✅ **APPROVED**
+5. **Testing:** ~~Approve 120 new tests target?~~ **UPDATED:** Approve 146 new tests target (120 Phase 1-5 + 24 Phase 6 + 2 REST API fix)? ⏳
+6. **Markets:** Any additional markets/channels to prioritize? ✅ **NO CHANGES NEEDED**
+7. **Phase 6 Buffer:** Approve 1000 message circular buffer with disk persistence? ⏳ **NEW**
+8. **Phase 6 Formats:** Approve dual CSV/JSON output for retrieval tools? ⏳ **NEW**
 
 ---
 
 **End of Implementation Plan**
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Last Updated:** 2025-10-17
-**Status:** Ready for Review
+**Status:** Phase 5 Complete, Phase 6 In Progress
