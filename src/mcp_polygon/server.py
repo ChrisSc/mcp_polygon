@@ -7,7 +7,16 @@ from mcp.server.transport_security import TransportSecuritySettings
 from polygon import RESTClient
 from importlib.metadata import version, PackageNotFoundError
 from .formatters import json_to_csv
-from .tools import stocks, options, futures, crypto, forex, economy, indices
+from .tools.rest import stocks, options, futures, crypto, forex, economy, indices
+from .tools.websockets.connection_manager import ConnectionManager
+from .tools.websockets import (
+    stocks as stocks_ws,
+    crypto as crypto_ws,
+    options as options_ws,
+    futures as futures_ws,
+    forex as forex_ws,
+    indices as indices_ws,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +38,9 @@ except PackageNotFoundError:
 
 polygon_client = RESTClient(POLYGON_API_KEY)
 polygon_client.headers["User-Agent"] += f" {version_number}"
+
+# Create global ConnectionManager for WebSocket streaming
+connection_manager = ConnectionManager()
 
 # Configure transport security for HTTP transports
 # This enables DNS rebinding protection as required by MCP specification
@@ -57,7 +69,7 @@ poly_mcp = FastMCP(
     port=http_port,
 )
 
-# Register all tools by asset class
+# Register REST API tools by asset class
 stocks.register_tools(poly_mcp, polygon_client, json_to_csv)
 options.register_tools(poly_mcp, polygon_client, json_to_csv)
 futures.register_tools(poly_mcp, polygon_client, json_to_csv)
@@ -66,7 +78,71 @@ forex.register_tools(poly_mcp, polygon_client, json_to_csv)
 economy.register_tools(poly_mcp, polygon_client, json_to_csv)
 indices.register_tools(poly_mcp, polygon_client, json_to_csv)
 
+# Register WebSocket streaming tools
+stocks_ws.register_tools(poly_mcp, connection_manager)
+crypto_ws.register_tools(poly_mcp, connection_manager)
+options_ws.register_tools(poly_mcp, connection_manager)
+futures_ws.register_tools(poly_mcp, connection_manager)
+forex_ws.register_tools(poly_mcp, connection_manager)
+indices_ws.register_tools(poly_mcp, connection_manager)
+
+
+async def run_startup_diagnostics():
+    """
+    Run diagnostics on server startup.
+
+    Note: This async function calls synchronous polygon_client.get_aggs()
+    internally, which will block briefly (~100-300ms). This is acceptable
+    for a startup check that runs once on server initialization.
+
+    For production async patterns, wrap sync calls with asyncio.to_thread(),
+    but the performance impact here is negligible.
+
+    Checks performed:
+    - POLYGON_API_KEY environment variable presence
+    - API connectivity with test aggregates query (AAPL daily data)
+    - Response data validation
+
+    Logs:
+    - ✅ Success indicators
+    - ⚠️  Warnings for missing config
+    - ❌ Errors for connectivity failures
+    """
+    logger.info("🔍 Running startup diagnostics...")
+
+    # Check API key
+    if not POLYGON_API_KEY:
+        logger.warning(
+            "⚠️  POLYGON_API_KEY not set - functionality will be limited"
+        )
+        logger.warning(
+            "   Set your API key: export POLYGON_API_KEY=your_key_here"
+        )
+        return
+
+    logger.info(f"✅ API key present (ends with: ...{POLYGON_API_KEY[-4:]})")
+
+    # Test basic connectivity with simple aggregates query (works on all tiers)
+    try:
+        test_result = polygon_client.get_aggs(
+            "AAPL", 1, "day", "2024-01-01", "2024-01-02", raw=True
+        )
+        if hasattr(test_result, "data") and test_result.data:
+            logger.info("✅ API connectivity OK")
+        else:
+            logger.warning("⚠️  API returned empty response")
+    except Exception as e:
+        logger.error(f"❌ API connectivity failed: {e}")
+        logger.error("   Please check your API key and network connection")
+        logger.error("   Visit: https://polygon.io/dashboard for API key")
+
 
 def run(transport: Literal["stdio", "sse", "streamable-http"] = "stdio") -> None:
     """Run the Polygon MCP server."""
+    import asyncio
+
+    # Run startup diagnostics
+    asyncio.run(run_startup_diagnostics())
+
+    # Start the MCP server
     poly_mcp.run(transport)

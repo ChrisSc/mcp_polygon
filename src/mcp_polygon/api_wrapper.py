@@ -178,21 +178,56 @@ class PolygonAPIWrapper:
             )
 
         except Exception as e:
-            # All other errors - format with context
+            # Extract context for error messages
+            # More context = better debugging for LLM and users
+            # Priority: ticker/symbol, dates, then query parameters
+            error_msg = str(e)
             context = {"method": method_name}
-            # Add ticker to context if present (most common identifier)
+
+            # Add ticker/symbol to context
             if "ticker" in kwargs:
                 context["ticker"] = kwargs["ticker"]
-            elif "from_" in kwargs:
+            elif "from_" in kwargs and "to" in kwargs:
+                # Forex/crypto currency pair
                 context["currency_pair"] = (
                     f"{kwargs.get('from_', '')}_{kwargs.get('to', '')}"
+                )
+
+            # Add date range to context if present
+            if "from_" in kwargs and "to" in kwargs and "ticker" in kwargs:
+                # Aggregates query with date range
+                context["date_range"] = f"{kwargs['from_']} to {kwargs['to']}"
+            elif "date" in kwargs:
+                # Single date query
+                context["date"] = kwargs["date"]
+
+            # Add additional query parameters for better debugging
+            if "multiplier" in kwargs and kwargs["multiplier"] is not None:
+                context["multiplier"] = kwargs["multiplier"]
+            if "timespan" in kwargs and kwargs["timespan"] is not None:
+                context["timespan"] = kwargs["timespan"]
+            if "limit" in kwargs and kwargs["limit"] is not None:
+                context["limit"] = kwargs["limit"]
+            if "window" in kwargs and kwargs["window"] is not None:
+                context["window"] = kwargs["window"]
+
+            # Check for API tier limitation (NOT_AUTHORIZED)
+            if "NOT_AUTHORIZED" in error_msg or "not entitled" in error_msg.lower():
+                # Build context string for error message
+                ctx_str = ", ".join(f"{k}={v}" for k, v in context.items())
+                return (
+                    f"API tier limitation: Your Polygon.io plan does not include access to {method_name}. "
+                    f"This tool requires a higher subscription tier.\n\n"
+                    f"Upgrade at: https://polygon.io/pricing\n\n"
+                    f"Context: {ctx_str}\n"
+                    f"Details: {error_msg}"
                 )
 
             # Log the full error for debugging
             logger.error(
                 f"Error calling {method_name}",
                 exc_info=True,
-                extra={"kwargs": kwargs, "error": str(e)},
+                extra={"kwargs": kwargs, "error": error_msg},
             )
 
             # Return formatted error message

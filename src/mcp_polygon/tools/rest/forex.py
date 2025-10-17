@@ -2,7 +2,8 @@
 
 from typing import Optional, Any, Dict, Union
 from datetime import datetime, date
-from ..api_wrapper import PolygonAPIWrapper
+from ...api_wrapper import PolygonAPIWrapper
+from ...validation import validate_date
 
 
 def register_tools(mcp, client, formatter):
@@ -68,6 +69,10 @@ def register_tools(mcp, client, formatter):
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Simple Moving Average (SMA) technical indicator for a forex ticker (format: C:EURUSD)."""
+        # Validate timestamp is not in future
+        if error := validate_date(timestamp, "timestamp"):
+            return error
+
         return await api.call(
             "get_sma",
             ticker=ticker,
@@ -94,6 +99,10 @@ def register_tools(mcp, client, formatter):
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Exponential Moving Average (EMA) technical indicator for a forex ticker (format: C:EURUSD)."""
+        # Validate timestamp is not in future
+        if error := validate_date(timestamp, "timestamp"):
+            return error
+
         return await api.call(
             "get_ema",
             ticker=ticker,
@@ -122,6 +131,10 @@ def register_tools(mcp, client, formatter):
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Moving Average Convergence/Divergence (MACD) technical indicator for a forex ticker (format: C:EURUSD)."""
+        # Validate timestamp is not in future
+        if error := validate_date(timestamp, "timestamp"):
+            return error
+
         return await api.call(
             "get_macd",
             ticker=ticker,
@@ -150,6 +163,10 @@ def register_tools(mcp, client, formatter):
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get Relative Strength Index (RSI) technical indicator for a forex ticker (format: C:EURUSD)."""
+        # Validate timestamp is not in future
+        if error := validate_date(timestamp, "timestamp"):
+            return error
+
         return await api.call(
             "get_rsi",
             ticker=ticker,

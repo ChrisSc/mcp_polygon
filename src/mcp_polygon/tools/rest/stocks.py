@@ -2,7 +2,8 @@
 
 from typing import Optional, Any, Dict, Union, List
 from datetime import datetime, date
-from ..api_wrapper import PolygonAPIWrapper
+from ...api_wrapper import PolygonAPIWrapper
+from ...validation import validate_date
 
 
 def register_tools(mcp, client, formatter):
@@ -34,6 +35,12 @@ def register_tools(mcp, client, formatter):
         """
         List aggregate bars for a ticker over a given date range in custom time window sizes.
         """
+        # Validate dates are not in future
+        if error := validate_date(from_, "from_"):
+            return error
+        if error := validate_date(to, "to"):
+            return error
+
         return await api.call(
             "get_aggs",
             ticker=ticker,
@@ -62,6 +69,12 @@ def register_tools(mcp, client, formatter):
         """
         Iterate through aggregate bars for a ticker over a given date range.
         """
+        # Validate dates are not in future
+        if error := validate_date(from_, "from_"):
+            return error
+        if error := validate_date(to, "to"):
+            return error
+
         return await api.call(
             "list_aggs",
             ticker=ticker,
@@ -87,6 +100,10 @@ def register_tools(mcp, client, formatter):
         """
         Get grouped daily bars for entire market for a specific date.
         """
+        # Validate date is not in future
+        if error := validate_date(date, "date"):
+            return error
+
         return await api.call(
             "get_grouped_daily_aggs",
             date=date,
@@ -107,6 +124,10 @@ def register_tools(mcp, client, formatter):
         """
         Get daily open, close, high, and low for a specific ticker and date.
         """
+        # Validate date is not in future
+        if error := validate_date(date, "date"):
+            return error
+
         return await api.call(
             "get_daily_open_close_agg",
             ticker=ticker,

@@ -2,7 +2,7 @@
 
 from typing import Optional, Any, Dict, Union
 from datetime import datetime, date
-from ..api_wrapper import PolygonAPIWrapper
+from ...api_wrapper import PolygonAPIWrapper
 
 
 def register_tools(mcp, client, formatter):
