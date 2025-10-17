@@ -103,26 +103,42 @@ For phase-specific details, see the [analysis/](analysis/) directory containing 
   - For existing installs, check that you have a version that supports the `uvx` command.
 
 ### Claude Code
+
 First, install [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview)
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
+#### Option 1: STDIO Transport (Direct Installation)
+
 Use the following command to add the Polygon MCP server to your local environment.
 This assumes `uvx` is in your $PATH; if not, then you need to provide the full
 path to `uvx`.
 
 ```bash
-# Claude CLI
+# Claude CLI - STDIO transport
 claude mcp add polygon -e POLYGON_API_KEY=your_api_key_here -- uvx --from git+https://github.com/ChrisSc/mcp_polygon@v1.0.0 mcp_polygon
 ```
 
-This command will install the MCP server in your current project.
-If you want to install it globally, you can run the command with `-s <scope>` flag.
-See `claude mcp add --help` for more options.
+#### Option 2: HTTP Transport (Docker)
 
-To start Claude Code, run `claude` in your terminal.
+To connect Claude Code to a local Docker HTTP server:
+
+1. **Start the Docker server** (see [Docker HTTP Transport](#docker-http-transport)):
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Add the server to Claude Code**:
+   ```bash
+   # Claude CLI - HTTP transport
+   claude mcp add polygon-docker http://localhost:8000/mcp --transport http -s user
+   ```
+
+The `-s user` flag installs it globally across all projects. Use `-s project` for project-only scope.
+
+**To start Claude Code**, run `claude` in your terminal.
 - If this is your first time using, follow the setup prompts to authenticate
 
 You can also run `claude mcp add-from-claude-desktop` if the MCP server is installed already for Claude Desktop.
@@ -260,16 +276,22 @@ curl -X POST http://localhost:8000/mcp \
 
 The default `docker-compose.yml` configuration:
 - ✅ Runs with `streamable-http` transport
-- ✅ Binds to `localhost:8000` on the host machine (secure)
+- ✅ Binds to `0.0.0.0:8000` inside container, exposed as `localhost:8000` on host (secure)
 - ✅ Includes DNS rebinding protection (MCP spec compliant)
 - ✅ Container hardened with read-only filesystem and dropped capabilities
 - ✅ Cache directory support for uv package manager
+
+Environment variables control the transport configuration:
+- `MCP_TRANSPORT=streamable-http` - Transport type (stdio, sse, or streamable-http)
+- `FASTMCP_HOST=0.0.0.0` - Bind address inside container (required for Docker accessibility)
+- `FASTMCP_PORT=8000` - Port number
 
 See `.env.example` for all configuration options.
 
 **Connecting MCP Clients:**
 
-For Claude Desktop configuration to connect to the local Docker server, see the [Claude Desktop HTTP Configuration](#claude-desktop-http-configuration) section below.
+- **Claude Code**: See [Claude Code - Option 2: HTTP Transport](#option-2-http-transport-docker) for the CLI command
+- **Claude Desktop**: See [Claude Desktop HTTP Configuration](#claude-desktop-http-configuration) for JSON configuration
 
 ## Security Considerations
 

@@ -32,16 +32,29 @@ polygon_client.headers["User-Agent"] += f" {version_number}"
 
 # Configure transport security for HTTP transports
 # This enables DNS rebinding protection as required by MCP specification
+# Note: For local development, we allow localhost connections from Claude Code
 transport_security = TransportSecuritySettings(
     enable_dns_rebinding_protection=True,
     allowed_hosts=["localhost:8000", "127.0.0.1:8000", "0.0.0.0:8000"],
-    allowed_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allowed_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost",  # Claude Code may use port-less origin
+        "http://127.0.0.1",
+    ],
 )
+
+# Read host and port from environment for HTTP transports
+# Default to 127.0.0.1:8000 for stdio, 0.0.0.0:8000 for HTTP (Docker compatibility)
+http_host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
+http_port = int(os.environ.get("FASTMCP_PORT", "8000"))
 
 poly_mcp = FastMCP(
     "Polygon",
     dependencies=["polygon"],
     transport_security=transport_security,
+    host=http_host,
+    port=http_port,
 )
 
 # Register all tools by asset class

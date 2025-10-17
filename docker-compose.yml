@@ -8,7 +8,7 @@ services:
       - "127.0.0.1:8000:8000"  # Bind to localhost only on host for security
     environment:
       - POLYGON_API_KEY=${POLYGON_API_KEY}
-      - MCP_TRANSPORT=streamable-http  # Enable HTTP transport
+      - MCP_TRANSPORT=streamable-http  # Enable streamable-http transport for Claude Desktop
       - FASTMCP_HOST=0.0.0.0  # Bind to all interfaces in container (required for Docker)
       - FASTMCP_PORT=8000
     stdin_open: true
