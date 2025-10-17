@@ -53,15 +53,38 @@ def register_tools(mcp, connection_manager: ConnectionManager):
                      Use "wss://delayed.polygon.io/stocks" for 15-min delayed data
 
         Returns:
-            Status message indicating stream started
+            Status message including:
+            - Connection endpoint (real-time or delayed based on API plan)
+            - List of subscribed channels
+            - Message reception statistics (total received, buffer fill level)
+            - Sample of recent messages (up to 5 formatted messages)
+
+            Message samples demonstrate that data is flowing and allow verification
+            of subscription success. Use get_stocks_stream_status() to check
+            buffer state without message samples.
+
+        Note:
+            Messages are buffered (last 100) in memory. The buffer is automatically
+            managed (FIFO eviction when full) and cleared on disconnect. Buffer
+            statistics show total messages received vs currently buffered.
+
+            For 15-minute delayed data plans, the endpoint automatically switches
+            to wss://delayed.polygon.io/stocks based on your API key.
 
         Examples:
-            - start_stocks_stream(["T.AAPL", "Q.AAPL"])
-              → Stream Apple trades and quotes
-            - start_stocks_stream(["AM.*"])
-              → Stream all minute aggregates (high volume!)
-            - start_stocks_stream(["T.AAPL", "T.MSFT", "T.TSLA"])
-              → Stream trades for multiple symbols
+            Start streaming Apple trades and quotes:
+            >>> start_stocks_stream(["T.AAPL", "Q.AAPL"])
+            ✓ Started stocks WebSocket stream
+            ...
+            Sample Messages (5):
+            [Trade] AAPL @ $150.25, 100 shares
+            ...
+
+            Stream all minute aggregates (high volume):
+            >>> start_stocks_stream(["AM.*"])
+
+            Stream trades for multiple symbols:
+            >>> start_stocks_stream(["T.AAPL", "T.MSFT", "T.TSLA"])
         """
         try:
             # Get or create connection
@@ -77,13 +100,35 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             # Subscribe to channels
             await conn.subscribe(channels)
 
+            # Get message stats and samples
+            stats = conn.get_message_stats()
+            recent = conn.get_recent_messages(limit=5)
+
+            # Format sample messages
+            from .stream_formatter import format_stream_message
+            formatted_samples = []
+            for msg in recent:
+                try:
+                    formatted = format_stream_message(msg, pretty=False)
+                    formatted_samples.append(formatted)
+                except Exception:
+                    pass  # Skip malformed messages
+
+            sample_text = ""
+            if formatted_samples:
+                sample_text = f"\n\nSample Messages ({len(formatted_samples)}):\n" + "\n\n".join(formatted_samples[:5])
+
             return f"""✓ Started stocks WebSocket stream
 Endpoint: {endpoint}
 Channels: {", ".join(channels)}
 State: {conn.state.value}
 
-Stream is now active. Messages will be delivered as market data arrives.
-Use stop_stocks_stream() to terminate the connection."""
+Message Stats:
+- Total received: {stats['total_received']}
+- Buffered: {stats['buffered']}/{stats['buffer_capacity']}
+{sample_text}
+
+Stream is now active. Use get_stocks_stream_status() to check buffer state."""
 
         except Exception as e:
             return f"✗ Failed to start stocks stream: {str(e)}"

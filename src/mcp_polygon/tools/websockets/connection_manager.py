@@ -11,12 +11,19 @@ Documentation References:
 import asyncio
 import json
 import logging
+import ssl
 from typing import Dict, List, Optional, Callable, Set
 from enum import Enum
+from collections import deque
 import websockets
 from websockets.exceptions import ConnectionClosed
 
 logger = logging.getLogger(__name__)
+
+
+class APIAccessError(Exception):
+    """Raised when API plan doesn't include requested data access."""
+    pass
 
 
 class ConnectionState(Enum):
@@ -57,6 +64,10 @@ class WebSocketConnection:
         self.message_handlers: List[Callable] = []
         self.reconnect_attempts = 0
         self.max_reconnect_delay = 30
+        self._receive_task: Optional[asyncio.Task] = None
+        self.message_buffer: deque = deque(maxlen=100)  # Circular buffer for recent messages
+        self._total_messages_received: int = 0  # Lifetime counter
+        self.last_error: Optional[str] = None  # Store last API access error
 
     async def connect(self) -> None:
         """
@@ -68,22 +79,40 @@ class WebSocketConnection:
             self.state = ConnectionState.CONNECTING
             logger.info(f"Connecting to {self.endpoint}")
 
+            # Create SSL context with system certificates
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = True
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
+
             self.websocket = await websockets.connect(
-                self.endpoint, ping_interval=30, ping_timeout=10
+                self.endpoint,
+                ping_interval=30,
+                ping_timeout=10,
+                ssl=ssl_context
             )
 
             self.state = ConnectionState.AUTHENTICATING
             await self._authenticate()
 
-            # Start message receiver task
-            asyncio.create_task(self._receive_messages())
+            # Set CONNECTED state before starting tasks/resubscribing
+            self.reconnect_attempts = 0
+            self.state = ConnectionState.CONNECTED
+
+            # Cancel old receive task if exists (prevents ConcurrencyError)
+            if self._receive_task and not self._receive_task.done():
+                self._receive_task.cancel()
+                try:
+                    await self._receive_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Start new message receiver task
+            self._receive_task = asyncio.create_task(self._receive_messages())
 
             # Resubscribe to previous channels if reconnecting
             if self.subscriptions:
                 await self._resubscribe()
 
-            self.reconnect_attempts = 0
-            self.state = ConnectionState.CONNECTED
             logger.info(f"✓ Connected to {self.market} WebSocket")
 
         except Exception as e:
@@ -181,8 +210,20 @@ class WebSocketConnection:
                     for msg in messages:
                         # Handle status messages
                         if msg.get("ev") == "status":
-                            self._handle_status(msg)
+                            try:
+                                self._handle_status(msg)
+                            except APIAccessError as e:
+                                # Store error for status queries
+                                self.last_error = str(e)
+                                self.state = ConnectionState.ERROR
+                                logger.error(f"⚠️  API Access Error: {e}")
+                                # Don't raise - keep connection alive for potential delayed endpoint reconnect
+                                continue
                         else:
+                            # Buffer data messages (status messages are NOT buffered)
+                            self.message_buffer.append(msg)
+                            self._total_messages_received += 1
+
                             # Route market data to handlers
                             for handler in self.message_handlers:
                                 await handler(msg)
@@ -193,11 +234,25 @@ class WebSocketConnection:
         except ConnectionClosed as e:
             logger.warning(f"Connection closed: {e}")
             await self._handle_connection_error(e)
+        except asyncio.CancelledError:
+            logger.info("Receive task cancelled (connection closing)")
+            raise  # Re-raise to properly cancel task
 
     def _handle_status(self, status_msg: dict) -> None:
         """Handle WebSocket status messages."""
         status = status_msg.get("status")
         message = status_msg.get("message", "")
+
+        # Trap API plan access errors for user-friendly messaging
+        if status == "error" and "don't have access" in message:
+            raise APIAccessError(
+                f"API Plan Limitation: {message}\n\n"
+                f"Your plan includes 15-minute delayed data. To access real-time data:\n"
+                f"1. Upgrade at https://polygon.io/pricing\n"
+                f"2. Or use delayed endpoint: wss://delayed.polygon.io/{self.market}\n\n"
+                f"Note: Delayed endpoint is automatically used based on your API key."
+            )
+
         logger.info(f"[STATUS] {status}: {message}")
 
     async def _handle_connection_error(self, error: Exception) -> None:
@@ -224,6 +279,17 @@ class WebSocketConnection:
 
     async def close(self) -> None:
         """Close WebSocket connection gracefully."""
+        # Clear buffer on disconnect
+        self.clear_message_buffer()
+
+        # Cancel receive task
+        if self._receive_task and not self._receive_task.done():
+            self._receive_task.cancel()
+            try:
+                await self._receive_task
+            except asyncio.CancelledError:
+                pass
+
         if self.websocket:
             await self.websocket.close()
             self.state = ConnectionState.DISCONNECTED
@@ -235,13 +301,46 @@ class WebSocketConnection:
 
     def get_status(self) -> dict:
         """Get connection status."""
-        return {
+        status = {
             "market": self.market,
             "state": self.state.value,
             "endpoint": self.endpoint,
             "subscriptions": list(self.subscriptions),
             "subscription_count": len(self.subscriptions),
         }
+        if self.last_error:
+            status["last_error"] = self.last_error
+        return status
+
+    def get_recent_messages(self, limit: int = 10) -> List[dict]:
+        """
+        Get N most recent messages from buffer.
+
+        Args:
+            limit: Number of messages to retrieve (default: 10, max: buffer size)
+
+        Returns:
+            List of message dicts in chronological order (oldest first)
+        """
+        limit = min(limit, len(self.message_buffer))
+        return list(self.message_buffer)[-limit:] if limit > 0 else []
+
+    def get_message_stats(self) -> dict:
+        """
+        Get message reception statistics.
+
+        Returns:
+            Dict with keys: total_received, buffered, buffer_capacity
+        """
+        return {
+            "total_received": self._total_messages_received,
+            "buffered": len(self.message_buffer),
+            "buffer_capacity": self.message_buffer.maxlen,
+        }
+
+    def clear_message_buffer(self) -> None:
+        """Clear message buffer (called on disconnect)."""
+        self.message_buffer.clear()
 
 
 class ConnectionManager:

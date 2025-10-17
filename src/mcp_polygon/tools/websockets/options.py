@@ -54,15 +54,32 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             endpoint: WebSocket endpoint (default: real-time)
 
         Returns:
-            Status message indicating stream started
+            Status message including:
+            - Connection endpoint
+            - List of subscribed channels
+            - Message reception statistics (total received, buffer fill level)
+            - Sample of recent messages (up to 5 formatted messages)
+
+            Use get_options_stream_status() for buffer state without samples.
+
+        Note:
+            Messages buffered (last 100) in memory. FIFO eviction, cleared on
+            disconnect. Options format: O:SPY251219C00650000 (root + date + type + strike).
 
         Examples:
-            - start_options_stream(["T.O:SPY251219C00650000", "Q.O:SPY251219P00650000"])
-              → Stream SPY option trades and quotes
-            - start_options_stream(["AM.O:*"])
-              → Stream all options minute aggregates (high volume!)
-            - start_options_stream(["FMV.O:AAPL250117C00150000"])
-              → Stream fair market value for AAPL call option
+            Stream SPY option trades and quotes:
+            >>> start_options_stream(["T.O:SPY251219C00650000", "Q.O:SPY251219P00650000"])
+            ✓ Started options WebSocket stream
+            ...
+            Sample Messages (2):
+            [Trade] O:SPY251219C00650000 @ $3.25
+            ...
+
+            Stream all minute aggregates (high volume):
+            >>> start_options_stream(["AM.O:*"])
+
+            Stream fair market value:
+            >>> start_options_stream(["FMV.O:AAPL250117C00150000"])
         """
         try:
             # Get or create connection
@@ -78,13 +95,35 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             # Subscribe to channels
             await conn.subscribe(channels)
 
+            # Get message stats and samples
+            stats = conn.get_message_stats()
+            recent = conn.get_recent_messages(limit=5)
+
+            # Format sample messages
+            from .stream_formatter import format_stream_message
+            formatted_samples = []
+            for msg in recent:
+                try:
+                    formatted = format_stream_message(msg, pretty=False)
+                    formatted_samples.append(formatted)
+                except Exception:
+                    pass  # Skip malformed messages
+
+            sample_text = ""
+            if formatted_samples:
+                sample_text = f"\n\nSample Messages ({len(formatted_samples)}):\n" + "\n\n".join(formatted_samples[:5])
+
             return f"""✓ Started options WebSocket stream
 Endpoint: {endpoint}
 Channels: {", ".join(channels)}
 State: {conn.state.value}
 
-Stream is now active. Messages will be delivered as market data arrives.
-Use stop_options_stream() to terminate the connection."""
+Message Stats:
+- Total received: {stats['total_received']}
+- Buffered: {stats['buffered']}/{stats['buffer_capacity']}
+{sample_text}
+
+Stream is now active. Use get_options_stream_status() to check buffer state."""
 
         except Exception as e:
             return f"✗ Failed to start options stream: {str(e)}"

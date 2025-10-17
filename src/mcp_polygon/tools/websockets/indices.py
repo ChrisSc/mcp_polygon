@@ -65,7 +65,23 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             endpoint: WebSocket endpoint (default: wss://socket.polygon.io/indices)
 
         Returns:
-            Status message indicating stream started
+            Status message including:
+            - Connection endpoint
+            - List of subscribed channels
+            - Message reception statistics (total received, buffer fill level)
+            - Sample of recent messages (up to 5 formatted messages)
+
+            Message samples demonstrate that data is flowing and allow verification
+            of subscription success. Use get_indices_stream_status() to check
+            buffer state without message samples.
+
+        Note:
+            Messages are buffered (last 100) in memory. The buffer is automatically
+            managed (FIFO eviction when full) and cleared on disconnect. Buffer
+            statistics show total messages received vs currently buffered.
+
+            Indices have a unique V.I:* channel for real-time values. No trade/quote
+            streams available (only values and aggregates). Requires Indices API tier.
 
         Examples:
             Start streaming major indices:
@@ -99,13 +115,35 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             # Subscribe to channels
             await conn.subscribe(channels)
 
+            # Get message stats and samples
+            stats = conn.get_message_stats()
+            recent = conn.get_recent_messages(limit=5)
+
+            # Format sample messages
+            from .stream_formatter import format_stream_message
+            formatted_samples = []
+            for msg in recent:
+                try:
+                    formatted = format_stream_message(msg, pretty=False)
+                    formatted_samples.append(formatted)
+                except Exception:
+                    pass  # Skip malformed messages
+
+            sample_text = ""
+            if formatted_samples:
+                sample_text = f"\n\nSample Messages ({len(formatted_samples)}):\n" + "\n\n".join(formatted_samples[:5])
+
             return f"""✓ Started indices WebSocket stream
 Endpoint: {endpoint}
 Channels: {", ".join(channels)}
 State: {conn.state.value}
 
-Stream is now active. Messages will be delivered as market data arrives.
-Use stop_indices_stream() to terminate the connection."""
+Message Stats:
+- Total received: {stats['total_received']}
+- Buffered: {stats['buffered']}/{stats['buffer_capacity']}
+{sample_text}
+
+Stream is now active. Use get_indices_stream_status() to check buffer state."""
 
         except Exception as e:
             return f"✗ Failed to start indices stream: {str(e)}"

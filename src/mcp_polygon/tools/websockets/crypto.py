@@ -62,16 +62,33 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             endpoint: WebSocket endpoint (default: wss://socket.polygon.io/crypto)
 
         Returns:
-            Status message indicating stream started
+            Status message including:
+            - Connection endpoint
+            - List of subscribed channels (or prompt to subscribe)
+            - Message reception statistics (total received, buffer fill level)
+            - Sample of recent messages (up to 5 formatted messages)
+
+            Message samples demonstrate data flow and subscription success.
+            Use get_crypto_stream_status() for buffer state without samples.
+
+        Note:
+            Messages buffered (last 100) in memory. FIFO eviction when full,
+            cleared on disconnect. Crypto markets operate 24/7, so buffer fills
+            continuously during active subscriptions.
 
         Examples:
-            Start streaming with specific channels:
+            Start streaming Bitcoin and Ethereum:
             >>> await start_crypto_stream(channels=["XT.BTC-USD", "XQ.ETH-USD"])
+            ✓ Started crypto WebSocket stream
+            ...
+            Sample Messages (2):
+            [Trade] BTC-USD @ $42,150.25
+            ...
 
-            Subscribe to all BTC trades:
+            Subscribe to all BTC pairs:
             >>> await start_crypto_stream(channels=["XT.BTC-USD", "XT.BTC-EUR"])
 
-            Stream minute aggregates for major pairs:
+            Stream minute aggregates:
             >>> await start_crypto_stream(channels=["XA.BTC-USD", "XA.ETH-USD"])
         """
         try:
@@ -97,13 +114,35 @@ def register_tools(mcp, connection_manager: ConnectionManager):
             if channels:
                 await conn.subscribe(channels)
 
+            # Get message stats and samples
+            stats = conn.get_message_stats()
+            recent = conn.get_recent_messages(limit=5)
+
+            # Format sample messages
+            from .stream_formatter import format_stream_message
+            formatted_samples = []
+            for msg in recent:
+                try:
+                    formatted = format_stream_message(msg, pretty=False)
+                    formatted_samples.append(formatted)
+                except Exception:
+                    pass  # Skip malformed messages
+
+            sample_text = ""
+            if formatted_samples:
+                sample_text = f"\n\nSample Messages ({len(formatted_samples)}):\n" + "\n\n".join(formatted_samples[:5])
+
             return f"""✓ Started crypto WebSocket stream
 Endpoint: {endpoint}
 Channels: {", ".join(channels) if channels else "None (use subscribe_crypto_channels to add)"}
 State: {conn.state.value}
 
-Stream is now active. Messages will be delivered as market data arrives.
-Use stop_crypto_stream() to terminate the connection."""
+Message Stats:
+- Total received: {stats['total_received']}
+- Buffered: {stats['buffered']}/{stats['buffer_capacity']}
+{sample_text}
+
+Stream is now active. Use get_crypto_stream_status() to check buffer state."""
 
         except Exception as e:
             return f"✗ Failed to start crypto stream: {str(e)}"
