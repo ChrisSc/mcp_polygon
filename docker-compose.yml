@@ -11,6 +11,10 @@ services:
       - MCP_TRANSPORT=streamable-http  # Enable streamable-http transport for Claude Desktop
       - FASTMCP_HOST=0.0.0.0  # Bind to all interfaces in container (required for Docker)
       - FASTMCP_PORT=8000
+    dns:
+      - 8.8.8.8      # Google DNS (primary)
+      - 8.8.4.4      # Google DNS (secondary)
+      - 1.1.1.1      # Cloudflare DNS (fallback)
     stdin_open: true
     tty: true
     # Security hardening
