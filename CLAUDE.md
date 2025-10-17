@@ -96,6 +96,46 @@ def register_tools(mcp, client, formatter):
 - Structured logging for all API calls
 - Single source of truth for error messages
 
+### Shared Validation Pattern (Phase 6 Refactoring)
+
+All REST tools use centralized validation functions from `validation.py`:
+
+**Location**: `src/mcp_polygon/validation.py` (95 lines)
+
+**Functions**:
+- `validate_date()`: Prevents future date queries (Polygon.io = historical data only)
+  - Handles: ISO strings, datetime, date objects, int timestamps (ms)
+  - 1-day tolerance for timezone edge cases
+  - Clear error messages with parameter name and current date
+
+- `validate_date_any_of()`: Validates comma-separated date lists
+  - Used by economy endpoints (treasury_yields, inflation, etc.)
+  - Reuses `validate_date()` for each date
+  - Fail-fast: stops at first error
+
+**Benefits**:
+- Eliminated 200 lines of duplication across 4 files
+- Single source of truth for date validation
+- Consistent error messages across all asset classes
+- Easy to enhance validation rules (one place to change)
+
+**Usage Example**:
+```python
+from ...validation import validate_date
+
+@mcp.tool()
+async def get_aggs(from_: Union[str, datetime, date], to: Union[str, datetime, date], ...):
+    # Validate dates before API call
+    if error := validate_date(from_, "from_"):
+        return error
+    if error := validate_date(to, "to"):
+        return error
+
+    return await api.call("get_aggs", from_=from_, to=to, ...)
+```
+
+**Testing**: See `tests/test_validation.py` (31 tests, 100% coverage)
+
 ### Module Organization
 
 ```

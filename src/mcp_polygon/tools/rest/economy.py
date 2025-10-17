@@ -3,6 +3,7 @@
 from typing import Optional, Any, Dict, Union
 from datetime import datetime, date
 from ...api_wrapper import PolygonAPIWrapper
+from ...validation import validate_date, validate_date_any_of
 
 
 def register_tools(mcp, client, formatter):
@@ -35,6 +36,20 @@ def register_tools(mcp, client, formatter):
         """
         Retrieve treasury yield data.
         """
+        # Validate all date parameters
+        if error := validate_date(date, "date"):
+            return error
+        if error := validate_date_any_of(date_any_of):
+            return error
+        if error := validate_date(date_lt, "date_lt"):
+            return error
+        if error := validate_date(date_lte, "date_lte"):
+            return error
+        if error := validate_date(date_gt, "date_gt"):
+            return error
+        if error := validate_date(date_gte, "date_gte"):
+            return error
+
         return await api.call(
             "list_treasury_yields",
             date=date,
@@ -64,6 +79,20 @@ def register_tools(mcp, client, formatter):
         """
         Get inflation data from the Federal Reserve.
         """
+        # Validate all date parameters
+        if error := validate_date(date, "date"):
+            return error
+        if error := validate_date_any_of(date_any_of):
+            return error
+        if error := validate_date(date_lt, "date_lt"):
+            return error
+        if error := validate_date(date_lte, "date_lte"):
+            return error
+        if error := validate_date(date_gt, "date_gt"):
+            return error
+        if error := validate_date(date_gte, "date_gte"):
+            return error
+
         return await api.call(
             "list_inflation",
             date=date,
@@ -111,6 +140,20 @@ def register_tools(mcp, client, formatter):
         Returns:
             CSV with columns: date, one_year, three_year, five_year (inflation expectations %)
         """
+        # Validate all date parameters
+        if error := validate_date(date, "date"):
+            return error
+        if error := validate_date_any_of(date_any_of):
+            return error
+        if error := validate_date(date_lt, "date_lt"):
+            return error
+        if error := validate_date(date_lte, "date_lte"):
+            return error
+        if error := validate_date(date_gt, "date_gt"):
+            return error
+        if error := validate_date(date_gte, "date_gte"):
+            return error
+
         return await api.call(
             "list_inflation_expectations",
             date=date,
