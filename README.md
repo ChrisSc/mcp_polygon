@@ -83,6 +83,21 @@ src/mcp_polygon/
 - ✅ **Phase 1 Complete** (53 tools): Core market data, aggregates, trades, quotes, snapshots
 - ✅ **Phase 2 Complete** (27 tools): Enhanced options, technical indicators, indices, corporate actions
 - ✅ **Phase 3 Complete** (1 tool): Inflation expectations tool added, comprehensive endpoint coverage analysis revealing 99% API coverage through generic tool architecture (81 tools serving 92 of 93 REST endpoints)
+- ✅ **Phase 4 Complete** (Infrastructure): WebSocket connection manager, stream formatter, 71 tests (96% coverage)
+- ✅ **Phase 5 Complete** (36 tools): WebSocket streaming tools for 6 markets (stocks, crypto, options, futures, forex, indices) with automatic message buffering
+
+### WebSocket Streaming Features
+
+The WebSocket implementation provides real-time market data streaming with built-in buffering:
+
+- **Message Buffering**: Automatic buffering of last 100 messages per connection (~50KB memory per market)
+- **Stream Management**: Start, stop, subscribe, unsubscribe, and monitor stream status for each market
+- **Message Statistics**: Total received, current buffer fill, and sample message display for verification
+- **Auto-Reconnection**: Exponential backoff reconnection (1s → 2s → 4s → 8s → max 30s)
+- **FIFO Buffer**: Automatic message eviction when full, cleared on disconnect
+- **JSON Format**: Real-time data preserves timestamps and nested structures (vs CSV for REST)
+
+For detailed documentation, see [CLAUDE.md](CLAUDE.md) - WebSocket Message Flow & Buffering section.
 
 ## Documentation
 

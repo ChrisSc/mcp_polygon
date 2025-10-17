@@ -234,10 +234,17 @@ def format_connection_status(status: dict) -> str:
 
     emoji = state_emoji.get(status["state"], "?")
 
-    return f"""
+    # Base status
+    output = f"""
 {emoji} {status["market"].upper()} WebSocket
 State: {status["state"]}
 Endpoint: {status["endpoint"]}
 Subscriptions: {status["subscription_count"]} channels
 Channels: {", ".join(status["subscriptions"][:5])}{"..." if len(status["subscriptions"]) > 5 else ""}
-""".strip()
+"""
+
+    # Add error details if present
+    if "last_error" in status:
+        output += f"\n\n⚠️  Last Error:\n{status['last_error']}"
+
+    return output.strip()

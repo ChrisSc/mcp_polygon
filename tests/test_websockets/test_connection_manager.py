@@ -10,6 +10,7 @@ Tests the WebSocketConnection and ConnectionManager classes including:
 
 import json
 import pytest
+from collections import deque
 from unittest.mock import AsyncMock, Mock, patch
 from websockets.exceptions import ConnectionClosed
 
@@ -475,8 +476,38 @@ async def test_receive_messages_connection_closed(connection, mock_websocket):
     mock_error.assert_called_once()
 
 
-# Note: test_connect_resubscribes_on_reconnect was removed due to asyncio.create_task
-# complications in testing. The resubscription logic is covered by test_resubscribe_after_reconnect.
+@pytest.mark.asyncio
+async def test_connect_cancels_old_receive_task(connection, mock_websocket):
+    """Test reconnection cancels old receive task to prevent ConcurrencyError."""
+    auth_response = json.dumps(
+        [{"ev": "status", "status": "auth_success", "message": "authenticated"}]
+    )
+    mock_websocket.recv.return_value = auth_response
+
+    with patch("websockets.connect", new_callable=AsyncMock, return_value=mock_websocket):
+        with patch.object(connection, "_receive_messages", new_callable=AsyncMock):
+            # First connection
+            await connection.connect()
+            first_task = connection._receive_task
+            assert first_task is not None
+            assert not first_task.done()
+
+            # Reconnect (simulating error recovery)
+            await connection.connect()
+            second_task = connection._receive_task
+
+            # Verify old task was cancelled
+            assert first_task.done()
+            assert first_task.cancelled()
+
+            # Verify new task is running
+            assert second_task is not None
+            assert not second_task.done()
+            assert second_task is not first_task
+
+
+# Note: Resubscription during reconnection is now covered by
+# test_connect_cancels_old_receive_task which verifies task cleanup.
 
 # ============================================================================
 # ConnectionManager Tests (7 tests)
@@ -558,3 +589,153 @@ def test_get_all_statuses(connection_manager):
     assert any(
         s["market"] == "crypto" and s["subscription_count"] == 1 for s in statuses
     )
+
+
+# ============================================================================
+# Message Buffering Tests (8 tests)
+# ============================================================================
+
+
+def test_message_buffer_initialization(connection):
+    """Test message buffer initializes with correct attributes."""
+    assert hasattr(connection, 'message_buffer')
+    assert hasattr(connection, '_total_messages_received')
+    assert len(connection.message_buffer) == 0
+    assert connection.message_buffer.maxlen == 100
+    assert connection._total_messages_received == 0
+
+
+@pytest.mark.asyncio
+async def test_message_buffer_stores_data_messages(connection, mock_websocket):
+    """Test data messages are buffered, status messages excluded."""
+    connection.websocket = mock_websocket
+
+    messages = [
+        json.dumps([
+            {"ev": "T", "sym": "AAPL", "p": 150.25, "s": 100},
+            {"ev": "Q", "sym": "MSFT", "bp": 300.50, "ap": 300.75},
+            {"ev": "status", "status": "success", "message": "Subscribed"},
+        ])
+    ]
+
+    async def async_iterator():
+        for msg in messages:
+            yield msg
+
+    mock_websocket.__aiter__ = lambda self: async_iterator()
+    await connection._receive_messages()
+
+    # Only 2 data messages should be buffered (status excluded)
+    assert len(connection.message_buffer) == 2
+    assert connection._total_messages_received == 2
+    assert connection.message_buffer[0]["ev"] == "T"
+    assert connection.message_buffer[1]["ev"] == "Q"
+
+
+@pytest.mark.asyncio
+async def test_buffer_circular_overflow(connection, mock_websocket):
+    """Test buffer drops oldest messages when maxlen exceeded."""
+    # Use smaller buffer for testing overflow
+    connection.message_buffer = deque(maxlen=5)
+    connection.websocket = mock_websocket
+
+    # Send 10 messages (buffer maxlen=5)
+    messages = [json.dumps([{"ev": "T", "id": i}]) for i in range(10)]
+
+    async def async_iterator():
+        for msg in messages:
+            yield msg
+
+    mock_websocket.__aiter__ = lambda self: async_iterator()
+    await connection._receive_messages()
+
+    # Buffer should contain only last 5 messages (IDs 5-9)
+    assert len(connection.message_buffer) == 5
+    assert connection._total_messages_received == 10  # Counter tracks all
+    assert connection.message_buffer[0]["id"] == 5  # Oldest in buffer
+    assert connection.message_buffer[-1]["id"] == 9  # Newest in buffer
+
+
+def test_get_recent_messages_with_limit(connection):
+    """Test get_recent_messages respects limit parameter."""
+    # Add 20 test messages
+    for i in range(20):
+        connection.message_buffer.append({"ev": "T", "id": i})
+        connection._total_messages_received += 1
+
+    # Get last 5 messages
+    recent = connection.get_recent_messages(limit=5)
+
+    assert len(recent) == 5
+    assert recent[0]["id"] == 15  # Oldest of last 5
+    assert recent[-1]["id"] == 19  # Most recent
+
+
+def test_get_recent_messages_empty_buffer(connection):
+    """Test get_recent_messages handles empty buffer correctly."""
+    recent = connection.get_recent_messages(limit=10)
+
+    assert recent == []
+
+
+def test_get_message_stats(connection):
+    """Test get_message_stats returns correct structure."""
+    # Add messages beyond buffer capacity
+    for i in range(150):
+        connection.message_buffer.append({"ev": "T", "id": i})
+        connection._total_messages_received += 1
+
+    stats = connection.get_message_stats()
+
+    assert stats["total_received"] == 150  # All messages counted
+    assert stats["buffered"] == 100  # Buffer capped at maxlen
+    assert stats["buffer_capacity"] == 100
+
+
+@pytest.mark.asyncio
+async def test_clear_buffer_on_close(connection, mock_websocket):
+    """Test buffer is cleared when connection closes."""
+    connection.websocket = mock_websocket
+    connection.state = ConnectionState.CONNECTED
+
+    # Add messages to buffer
+    connection.message_buffer.append({"ev": "T", "sym": "AAPL"})
+    connection._total_messages_received = 10
+
+    await connection.close()
+
+    # Buffer cleared, but counter persists
+    assert len(connection.message_buffer) == 0
+    assert connection._total_messages_received == 10
+
+
+def test_handle_status_api_access_error(connection):
+    """Test APIAccessError raised for API plan limitations."""
+    from mcp_polygon.tools.websockets.connection_manager import APIAccessError
+
+    status_msg = {
+        "ev": "status",
+        "status": "error",
+        "message": "You don't have access real-time data. If your plan only includes delayed data, you can connect to the delayed websocket at wss://delayed.polygon.io/stocks."
+    }
+
+    with pytest.raises(APIAccessError) as exc_info:
+        connection._handle_status(status_msg)
+
+    # Verify error message contains helpful guidance
+    error_msg = str(exc_info.value)
+    assert "API Plan Limitation" in error_msg
+    assert "polygon.io/pricing" in error_msg
+    assert "delayed.polygon.io" in error_msg
+
+
+def test_handle_status_normal_messages(connection):
+    """Test normal status messages don't raise errors."""
+    status_msg = {
+        "ev": "status",
+        "status": "success",
+        "message": "Subscribed to channels"
+    }
+
+    # Should not raise any exception
+    connection._handle_status(status_msg)
