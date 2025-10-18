@@ -1542,5 +1542,398 @@ class TestParameterValidationPhase2:
         assert call_args[1]["timespan"] == "week"
 
 
+class TestGroupedDailyAggsRefactored:
+    """Tests for refactored get_grouped_daily_aggs tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_success(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs with successful response."""
+        mock_data = {
+            "status": "OK",
+            "resultsCount": 3,
+            "results": [
+                {
+                    "T": "AAPL",
+                    "o": 150.25,
+                    "h": 152.50,
+                    "l": 149.00,
+                    "c": 151.75,
+                    "v": 75000000,
+                    "vw": 151.00,
+                    "t": 1640995200000,
+                    "n": 500000,
+                },
+                {
+                    "T": "MSFT",
+                    "o": 300.50,
+                    "h": 305.00,
+                    "l": 299.00,
+                    "c": 303.25,
+                    "v": 30000000,
+                    "vw": 302.00,
+                    "t": 1640995200000,
+                    "n": 250000,
+                },
+                {
+                    "T": "GOOGL",
+                    "o": 2800.00,
+                    "h": 2850.00,
+                    "l": 2790.00,
+                    "c": 2825.50,
+                    "v": 1500000,
+                    "vw": 2820.00,
+                    "t": 1640995200000,
+                    "n": 50000,
+                },
+            ],
+        }
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date="2024-01-15")
+
+        # Verify CSV format and content
+        assert "T" in result or "ticker" in result.lower()
+        assert "AAPL" in result
+        assert "MSFT" in result
+        assert "GOOGL" in result
+        assert "150.25" in result or "151.75" in result
+
+        # Verify SDK method called with correct parameters
+        mock_polygon_client.get_grouped_daily_aggs.assert_called_once_with(
+            date="2024-01-15",
+            adjusted=None,
+            include_otc=None,
+            params=None,
+            raw=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_with_all_parameters(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs with all optional parameters."""
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        await tool.fn(
+            date="2024-01-15",
+            adjusted=True,
+            include_otc=True,
+            params={"custom": "param"},
+        )
+
+        # Verify all parameters passed to SDK
+        mock_polygon_client.get_grouped_daily_aggs.assert_called_once_with(
+            date="2024-01-15",
+            adjusted=True,
+            include_otc=True,
+            params={"custom": "param"},
+            raw=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_date_validation_future(
+        self, mock_polygon_client, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs rejects future dates."""
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        # Test with future date
+        result = await tool.fn(date="2099-12-31")
+
+        # Verify error message contains expected text
+        assert "Error" in result
+        assert "future" in result.lower()
+        assert "date" in result.lower()
+
+        # Verify SDK method NOT called
+        mock_polygon_client.get_grouped_daily_aggs.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_date_validation_past(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs accepts past dates."""
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        # Test with past date
+        result = await tool.fn(date="2023-01-15")
+
+        # Verify no error message
+        assert "Error" not in result or "OK" in result
+
+        # Verify SDK method WAS called
+        mock_polygon_client.get_grouped_daily_aggs.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_date_validation_today(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs accepts today's date (with timezone tolerance)."""
+        from datetime import datetime, timezone
+
+        today = datetime.now(timezone.utc).date().isoformat()
+
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date=today)
+
+        # Verify no error message
+        assert "Error" not in result or "OK" in result
+
+        # Verify SDK method WAS called
+        mock_polygon_client.get_grouped_daily_aggs.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_date_format_datetime(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs with datetime object."""
+        from datetime import datetime, timezone
+
+        # Past datetime
+        past_date = datetime(2023, 1, 15, tzinfo=timezone.utc)
+
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date=past_date)
+
+        # Verify SDK accepts datetime (converted to appropriate format)
+        assert "Error" not in result or "OK" in result
+        mock_polygon_client.get_grouped_daily_aggs.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_error_handling_http_404(
+        self, mock_polygon_client, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs handles 404 error."""
+        # Mock HTTP 404 error with proper exception structure
+        error = Exception("Not Found")
+        error.response = Mock()
+        error.response.status_code = 404
+        mock_polygon_client.get_grouped_daily_aggs.side_effect = error
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date="2023-01-15")
+
+        # Verify error message from PolygonAPIError.format_error()
+        assert "Error" in result
+        assert "not found" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_error_handling_timeout(
+        self, mock_polygon_client, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs handles timeout error."""
+        import asyncio
+
+        # Mock timeout error
+        mock_polygon_client.get_grouped_daily_aggs.side_effect = asyncio.TimeoutError(
+            "Request timed out"
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date="2023-01-15")
+
+        # Verify error message
+        assert "Error" in result
+        assert "timeout" in result.lower() or "timed out" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_csv_format(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs returns properly formatted CSV."""
+        mock_data = {
+            "status": "OK",
+            "resultsCount": 2,
+            "results": [
+                {
+                    "T": "AAPL",
+                    "o": 150.25,
+                    "h": 152.50,
+                    "l": 149.00,
+                    "c": 151.75,
+                    "v": 75000000,
+                    "vw": 151.00,
+                    "t": 1640995200000,
+                    "n": 500000,
+                },
+                {
+                    "T": "MSFT",
+                    "o": 300.50,
+                    "h": 305.00,
+                    "l": 299.00,
+                    "c": 303.25,
+                    "v": 30000000,
+                    "vw": 302.00,
+                    "t": 1640995200000,
+                    "n": 250000,
+                },
+            ],
+        }
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date="2024-01-15")
+
+        # Verify CSV structure
+        lines = result.strip().split("\n")
+        assert len(lines) >= 2  # Header + at least 1 data row
+
+        # Verify header contains expected columns
+        header = lines[0]
+        # Check for standard aggregate columns
+        assert any(col in header for col in ["T", "ticker", "o", "open", "c", "close"])
+
+        # Verify data rows contain actual values
+        assert "AAPL" in result
+        assert "MSFT" in result
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_empty_results(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test get_grouped_daily_aggs with empty results (non-trading day)."""
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        result = await tool.fn(date="2024-01-15")
+
+        # Verify empty CSV (no data rows)
+        assert result == "" or result.strip() == ""
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_locale_not_passed_to_sdk(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test that locale parameter is NOT passed to SDK (uses default)."""
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        await tool.fn(date="2024-01-15")
+
+        # Verify locale is NOT in call arguments
+        call_kwargs = mock_polygon_client.get_grouped_daily_aggs.call_args[1]
+        assert "locale" not in call_kwargs
+        assert "market_type" not in call_kwargs  # Also verify market_type not passed
+
+    @pytest.mark.asyncio
+    async def test_get_grouped_daily_aggs_raw_parameter_passed(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test that raw=True is passed to SDK for binary response handling."""
+        mock_data = {"status": "OK", "resultsCount": 0, "results": []}
+        mock_polygon_client.get_grouped_daily_aggs.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["get_grouped_daily_aggs"]
+
+        await tool.fn(date="2024-01-15")
+
+        # Verify raw=True is in call arguments
+        call_kwargs = mock_polygon_client.get_grouped_daily_aggs.call_args[1]
+        assert call_kwargs.get("raw") is True
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
