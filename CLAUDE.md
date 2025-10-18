@@ -210,6 +210,58 @@ The server uses the official `polygon-api-client` SDK:
 - All calls use `raw=True` to get binary response data
 - Response format: `results.data` contains bytes that are automatically decoded by API wrapper
 
+### Unified Snapshots Pattern
+
+The `list_universal_snapshots` tool demonstrates a powerful cross-asset querying pattern:
+
+**Location**: `src/mcp_polygon/tools/rest/stocks.py:262-347` (86 lines)
+
+**What It Does:**
+- Single endpoint to query stocks, options, forex, crypto, and indices
+- Consistent data format across all asset classes
+- Supports lexicographic range queries (ticker_gte, ticker_lte, etc.)
+- Ideal for multi-asset portfolio monitoring
+
+**Key Implementation Details:**
+
+1. **Ticker Format Prefixes**: Assets identified by prefix
+   - Stocks: No prefix (e.g., `AAPL`)
+   - Options: `O:` prefix (e.g., `O:SPY251219C00650000`)
+   - Forex: `C:` prefix (e.g., `C:EURUSD`)
+   - Crypto: `X:` prefix (e.g., `X:BTCUSD`)
+   - Indices: `I:` prefix (e.g., `I:SPX`)
+
+2. **API Constraint**: Cannot use both `type` and `ticker_any_of` parameters together
+   - ✅ Valid: `type="stocks", limit=10` (filter by asset class)
+   - ✅ Valid: `ticker_any_of="AAPL,C:EURUSD,X:BTCUSD"` (multi-asset query)
+   - ❌ Invalid: `type="stocks", ticker_any_of="AAPL,MSFT"` (API error)
+
+3. **Range Queries**: Efficient for scanning ticker ranges
+   ```python
+   # Get all EUR forex pairs (EUR/USD, EUR/GBP, EUR/JPY, etc.)
+   list_universal_snapshots(
+       type="fx",
+       ticker_gte="C:EUR",
+       ticker_lte="C:EURz"  # 'z' is lexicographically after all currencies
+   )
+   ```
+
+4. **Response Structure**: Unified across asset classes
+   - Common fields: ticker, type, session OHLC, volume, change metrics
+   - Asset-specific fields: Options Greeks (delta, gamma, theta, vega), implied volatility
+
+**Testing**: See `tests/test_rest_endpoints.py:1941-2207` (4 tests, 100% coverage)
+- Unit tests: Comma-separated tickers, type filter, range query
+- Live API test: Validates against real Polygon.io API
+
+**Documentation**: Cross-referenced to `polygon-docs/rest/unified-snapshots.md` (827 lines)
+
+**Use Cases:**
+- Multi-asset portfolio monitoring (`ticker_any_of="AAPL,C:EURUSD,X:BTCUSD"`)
+- Cross-asset correlation analysis
+- Single query for diverse holdings (stocks + options + crypto)
+- Efficient currency pair scanning
+
 ## Adding New Tools
 
 ### Step 1: Choose the Correct Module
