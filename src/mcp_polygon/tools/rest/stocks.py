@@ -260,20 +260,88 @@ def register_tools(mcp, client, formatter):
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def list_universal_snapshots(
-        type: str,
-        ticker_any_of: Optional[List[str]] = None,
+        type: Optional[str] = None,
+        ticker_any_of: Optional[str] = None,
+        ticker_lt: Optional[str] = None,
+        ticker_lte: Optional[str] = None,
+        ticker_gt: Optional[str] = None,
+        ticker_gte: Optional[str] = None,
         order: Optional[str] = None,
         limit: Optional[int] = 100,
         sort: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
-        Get universal snapshots for multiple assets of a specific type.
+        Get universal snapshots for multiple assets across asset classes.
+
+        Query multiple asset types (stocks, options, forex, crypto, indices) in a single
+        request with consistent data format. Ideal for multi-asset portfolio monitoring
+        and cross-asset correlation analysis.
+
+        Polygon Docs: polygon-docs/rest/unified-snapshots.md
+        SDK Method: client.list_universal_snapshots()
+        API Endpoint: GET /v3/snapshot
+
+        Args:
+            type: Filter by asset type. Values: stocks, options, fx, crypto, indices
+            ticker_any_of: Comma-separated tickers (e.g., "AAPL,C:EURUSD,X:BTCUSD").
+                          Mix multiple asset classes in a single query using ticker
+                          format prefixes (O: options, C: forex, X: crypto, I: indices).
+            ticker_lt: Return tickers lexicographically less than this value
+            ticker_lte: Return tickers lexicographically less than or equal to this value
+            ticker_gt: Return tickers lexicographically greater than this value
+            ticker_gte: Return tickers lexicographically greater than or equal to this value
+            order: Sort order ("asc" or "desc")
+            limit: Maximum results per page (default: 100, max: 250)
+            sort: Sort field ("ticker" or "type")
+            params: Additional query parameters
+
+        Returns:
+            CSV with unified snapshot data including:
+            - type: Asset class (stocks, options, fx, crypto, indices)
+            - ticker: Ticker symbol with format prefix
+            - session_open, session_high, session_low, session_close: Session OHLC
+            - session_volume: Trading volume (asset-specific)
+            - session_change, session_change_percent: Price change metrics
+            - last_quote_bid, last_quote_ask: Most recent quote
+            - last_trade_price, last_trade_size: Most recent trade
+            - market_status: Current market status (open, closed, etc.)
+
+            Asset-specific fields (options only):
+            - greeks_delta, greeks_gamma, greeks_theta, greeks_vega: Options Greeks
+            - implied_volatility, open_interest: Options metrics
+            - details_strike_price, details_expiration_date: Contract details
+
+        Examples:
+            # Multi-asset portfolio snapshot (no type filter)
+            list_universal_snapshots(ticker_any_of="AAPL,GOOGL,C:EURUSD,X:BTCUSD")
+
+            # Filter by asset type (stocks only, no ticker_any_of)
+            list_universal_snapshots(type="stocks", limit=10)
+
+            # Range query for forex pairs (EUR/USD, EUR/GBP, EUR/JPY)
+            list_universal_snapshots(type="fx", ticker_gte="C:EUR", ticker_lte="C:EURz")
+
+            # All crypto assets with pagination
+            list_universal_snapshots(type="crypto", limit=250)
+
+        Notes:
+            - **IMPORTANT**: API constraint - Cannot use both 'type' and 'ticker_any_of' parameters
+              together. Use ticker_any_of for multi-asset queries, or type for filtering by asset class.
+            - Maximum 250 results per request (use pagination for more)
+            - Response format is consistent across all asset types
+            - Some fields are asset-specific (e.g., options Greeks)
+            - All timestamps in Unix nanoseconds
+            - Real-time data requires Developer+ plans
         """
         return await api.call(
             "list_universal_snapshots",
             type=type,
             ticker_any_of=ticker_any_of,
+            ticker_lt=ticker_lt,
+            ticker_lte=ticker_lte,
+            ticker_gt=ticker_gt,
+            ticker_gte=ticker_gte,
             order=order,
             limit=limit,
             sort=sort,

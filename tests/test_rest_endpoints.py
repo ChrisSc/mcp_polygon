@@ -1934,5 +1934,274 @@ class TestGroupedDailyAggsRefactored:
         assert call_kwargs.get("raw") is True
 
 
+class TestListUniversalSnapshots:
+    """Tests for list_universal_snapshots tool."""
+
+    @pytest.mark.asyncio
+    async def test_list_universal_snapshots_with_comma_separated_tickers(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test list_universal_snapshots with comma-separated ticker string."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "AAPL",
+                    "type": "stocks",
+                    "session": {
+                        "open": 150.25,
+                        "high": 152.50,
+                        "low": 149.00,
+                        "close": 151.75,
+                        "volume": 75000000,
+                    },
+                    "prev_day": {"close": 149.50},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "GOOGL",
+                    "type": "stocks",
+                    "session": {
+                        "open": 2800.00,
+                        "high": 2850.00,
+                        "low": 2790.00,
+                        "close": 2825.50,
+                        "volume": 1500000,
+                    },
+                    "prev_day": {"close": 2795.00},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "MSFT",
+                    "type": "stocks",
+                    "session": {
+                        "open": 300.50,
+                        "high": 305.00,
+                        "low": 299.00,
+                        "close": 303.25,
+                        "volume": 30000000,
+                    },
+                    "prev_day": {"close": 298.75},
+                    "updated": 1640995200000,
+                },
+            ],
+        }
+        mock_polygon_client.list_universal_snapshots.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_universal_snapshots"]
+
+        # Test with comma-separated tickers (string format)
+        result = await tool.fn(type="stocks", ticker_any_of="AAPL,GOOGL,MSFT")
+
+        # Verify string return type
+        assert isinstance(result, str)
+
+        # Verify CSV contains ticker names
+        assert "AAPL" in result
+        assert "GOOGL" in result
+        assert "MSFT" in result
+
+        # Verify price data present
+        assert "150.25" in result or "151.75" in result
+        assert "2800" in result or "2825.50" in result
+        assert "300" in result or "303.25" in result
+
+        # Verify SDK called correctly with all parameters
+        mock_polygon_client.list_universal_snapshots.assert_called_once_with(
+            type="stocks",
+            ticker_any_of="AAPL,GOOGL,MSFT",
+            ticker_lt=None,
+            ticker_lte=None,
+            ticker_gt=None,
+            ticker_gte=None,
+            order=None,
+            limit=100,
+            sort=None,
+            params=None,
+            raw=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_universal_snapshots_with_type_filter_and_limit(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test list_universal_snapshots with type filter and custom limit."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "AAPL",
+                    "type": "stocks",
+                    "session": {"close": 151.75},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "MSFT",
+                    "type": "stocks",
+                    "session": {"close": 303.25},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "GOOGL",
+                    "type": "stocks",
+                    "session": {"close": 2825.50},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "TSLA",
+                    "type": "stocks",
+                    "session": {"close": 245.10},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "NVDA",
+                    "type": "stocks",
+                    "session": {"close": 495.50},
+                    "updated": 1640995200000,
+                },
+            ],
+        }
+        mock_polygon_client.list_universal_snapshots.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_universal_snapshots"]
+
+        # Test with type="stocks" and limit=5
+        result = await tool.fn(type="stocks", limit=5)
+
+        # Verify CSV format
+        assert isinstance(result, str)
+        assert "ticker" in result or "AAPL" in result
+
+        # Verify SDK called with correct parameters (including all range params)
+        mock_polygon_client.list_universal_snapshots.assert_called_once_with(
+            type="stocks",
+            ticker_any_of=None,
+            ticker_lt=None,
+            ticker_lte=None,
+            ticker_gt=None,
+            ticker_gte=None,
+            order=None,
+            limit=5,
+            sort=None,
+            params=None,
+            raw=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_universal_snapshots_with_range_query(
+        self, mock_polygon_client, mock_response, api_wrapper
+    ):
+        """Test list_universal_snapshots with ticker range parameters."""
+        mock_data = {
+            "status": "OK",
+            "results": [
+                {
+                    "ticker": "C:EURUSD",
+                    "type": "fx",
+                    "session": {"bid": 1.0850, "ask": 1.0852},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "C:EURGBP",
+                    "type": "fx",
+                    "session": {"bid": 0.8450, "ask": 0.8452},
+                    "updated": 1640995200000,
+                },
+                {
+                    "ticker": "C:EURJPY",
+                    "type": "fx",
+                    "session": {"bid": 130.25, "ask": 130.27},
+                    "updated": 1640995200000,
+                },
+            ],
+        }
+        mock_polygon_client.list_universal_snapshots.return_value = mock_response(
+            mock_data
+        )
+
+        from src.mcp_polygon.tools.rest.stocks import register_tools
+        from mcp.server.fastmcp import FastMCP
+
+        mcp = FastMCP("test")
+        register_tools(mcp, mock_polygon_client, api_wrapper.formatter)
+        tool = mcp._tool_manager._tools["list_universal_snapshots"]
+
+        # Test with ticker range parameters (directly passed to tool)
+        result = await tool.fn(
+            type="fx",
+            ticker_gte="C:EUR",
+            ticker_lte="C:EURz",
+        )
+
+        # Verify CSV contains EUR forex pairs
+        assert isinstance(result, str)
+        assert "C:EUR" in result
+
+        # Verify SDK called with all parameters including range params
+        call_kwargs = mock_polygon_client.list_universal_snapshots.call_args[1]
+        assert call_kwargs["type"] == "fx"
+        assert call_kwargs["ticker_gte"] == "C:EUR"
+        assert call_kwargs["ticker_lte"] == "C:EURz"
+        assert call_kwargs["ticker_gt"] is None
+        assert call_kwargs["ticker_lt"] is None
+        assert call_kwargs["ticker_any_of"] is None
+        assert call_kwargs["raw"] is True
+
+    @pytest.mark.skipif(
+        not os.getenv("POLYGON_API_KEY"), reason="No API key for live test"
+    )
+    @pytest.mark.asyncio
+    async def test_list_universal_snapshots_live_api(self):
+        """Test list_universal_snapshots with live API (requires API key)."""
+        import os
+        from polygon import RESTClient
+
+        # Use real API client
+        client = RESTClient(os.getenv("POLYGON_API_KEY"))
+
+        from src.mcp_polygon.formatters import json_to_csv
+        from src.mcp_polygon.api_wrapper import PolygonAPIWrapper
+
+        wrapper = PolygonAPIWrapper(client, json_to_csv)
+
+        # Test with real API call (type filter only, no ticker_any_of)
+        # Note: API doesn't allow both type and ticker_any_of parameters together
+        result = await wrapper.call(
+            "list_universal_snapshots",
+            type="stocks",
+            limit=2,
+        )
+
+        # Verify CSV output
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+        # Verify no error messages
+        assert "Error" not in result
+        assert "error" not in result.lower()
+
+        # Verify CSV structure
+        lines = result.strip().split("\n")
+        assert len(lines) >= 2  # Header + at least 1 data row
+
+        # Verify header contains expected columns
+        header = lines[0]
+        assert "ticker" in header.lower() or "symbol" in header.lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
