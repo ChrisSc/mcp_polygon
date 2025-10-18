@@ -93,7 +93,32 @@ def register_tools(mcp, client, formatter):
         """
         Get the complete options chain for an underlying asset with optional filtering by strike price, expiration date, and contract type.
 
+        Polygon Documentation: polygon-docs/rest/options/snapshots/chain.md
+        API Endpoint: GET /v3/snapshot/options/{underlyingAsset}
+        SDK Method: client.list_snapshot_options_chain(underlying_asset, params={...})
+
         Contract type must be either "call" or "put" if specified. Returns all contracts (calls and puts) by default.
+
+        Query Parameters:
+        - strike_price: Filter by specific strike price
+        - expiration_date: Filter by expiration date (YYYY-MM-DD)
+        - contract_type: Filter by "call" or "put"
+        - limit: Max results (default: 10, max: 250)
+        - order: Sort order ("asc" or "desc")
+        - sort: Sort field ("strike_price", "expiration_date")
+
+        Response includes comprehensive contract data:
+        - Break-even price and daily bar data
+        - Contract specifications (strike, expiration, type)
+        - Options Greeks (delta, gamma, theta, vega)
+        - Implied volatility
+        - Last quote and trade
+        - Open interest
+        - Underlying asset price
+
+        Pagination: Use next_url from response for large option chains (>250 contracts).
+
+        Note: All query parameters are automatically passed to the SDK via the params dict by the API wrapper.
         """
         return await api.call(
             "list_snapshot_options_chain",

@@ -37,7 +37,9 @@ class TestServerInitialization:
             # Count registered tools
             tools = await server.poly_mcp.list_tools()
             tool_count = len(tools)
-            assert tool_count == 117, f"Expected 117 tools (81 REST + 36 WebSocket), found {tool_count}"
+            assert tool_count == 117, (
+                f"Expected 117 tools (81 REST + 36 WebSocket), found {tool_count}"
+            )
 
     @pytest.mark.asyncio
     async def test_tool_distribution_by_asset_class(self):
@@ -767,17 +769,14 @@ class TestOptionsToolsPhase2:
 
         assert "ticker" in result
         assert "strike_price" in result
-        mock_polygon_client.list_snapshot_options_chain.assert_called_once_with(
-            underlying_asset="SPY",
-            strike_price=None,
-            expiration_date=None,
-            contract_type="call",
-            limit=250,
-            order=None,
-            sort=None,
-            params=None,
-            raw=True,
-        )
+        # Verify parameters are correctly reorganized into params dict
+        # (list_snapshot_options_chain requires query params in params dict)
+        call_kwargs = mock_polygon_client.list_snapshot_options_chain.call_args[1]
+        assert call_kwargs["underlying_asset"] == "SPY"
+        assert call_kwargs["raw"] is True
+        assert "params" in call_kwargs
+        # None values should be excluded from params dict
+        assert call_kwargs["params"] == {"contract_type": "call", "limit": 250}
 
 
 class TestStocksToolsPhase2:

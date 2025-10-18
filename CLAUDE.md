@@ -95,6 +95,7 @@ def register_tools(mcp, client, formatter):
 - Automatic binary response decoding
 - Structured logging for all API calls
 - Single source of truth for error messages
+- **Automatic params dict handling**: For SDK methods that require query parameters via `params` dict (e.g., `list_snapshot_options_chain`), the wrapper automatically reorganizes kwargs into the correct format
 
 ### Shared Validation Pattern (Phase 6 Refactoring)
 
@@ -745,7 +746,10 @@ Some tools require higher Polygon.io API tiers:
 - Upgrade: https://polygon.io/pricing
 
 **Options Snapshot Chain** - Requires higher Options tier:
-- `list_snapshot_options_chain` (use `list_options_contracts` as alternative)
+- `get_options_chain` - Now fixed! Query parameters are automatically passed via params dict.
+  - Uses SDK method: `client.list_snapshot_options_chain(underlying_asset, params={...})`
+  - See `src/mcp_polygon/api_wrapper.py` for implementation details
+- Alternative: `list_options_contracts` for contract reference data without snapshots
 
 **Futures/Crypto/Forex** - Require respective plan tiers
 
