@@ -93,12 +93,32 @@ def register_tools(mcp, client, formatter):
         date: str,
         adjusted: Optional[bool] = None,
         include_otc: Optional[bool] = None,
-        locale: Optional[str] = None,
-        market_type: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Get grouped daily bars for entire market for a specific date.
+
+        Retrieves daily OHLC (open, high, low, close), volume, and VWAP data for all U.S.
+        stocks on a specified trading date. Returns 8,000+ tickers in a single request.
+
+        Polygon Docs: polygon-docs/rest/stocks/aggregates/grouped-daily.md
+        Endpoint: GET /v2/aggs/grouped/locale/us/market/stocks/{date}
+
+        Args:
+            date: Trading date (YYYY-MM-DD format, e.g., "2024-01-15")
+            adjusted: Whether results are adjusted for splits (default: True)
+            include_otc: Include Over-The-Counter securities (default: False)
+            params: Additional query parameters
+
+        Returns:
+            CSV formatted daily bars for all stocks with columns:
+            T (ticker), o (open), h (high), l (low), c (close), v (volume),
+            vw (VWAP), t (timestamp), n (transactions)
+
+        Note:
+            - Non-trading days (weekends, holidays) return empty results
+            - Response size: 2-5 MB (typical), 5-10 MB (with OTC)
+            - Results not paginated - all stocks in single response
         """
         # Validate date is not in future
         if error := validate_date(date, "date"):
@@ -109,8 +129,6 @@ def register_tools(mcp, client, formatter):
             date=date,
             adjusted=adjusted,
             include_otc=include_otc,
-            locale=locale,
-            market_type=market_type,
             params=params,
         )
 
