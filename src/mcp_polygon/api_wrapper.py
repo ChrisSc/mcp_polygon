@@ -137,6 +137,52 @@ class PolygonAPIWrapper:
                 # Regular methods (client.method_name)
                 method = getattr(self.client, method_name)
 
+            # Handle SDK methods that require query parameters in params dict
+            # Some SDK methods only accept query parameters through the params dict,
+            # not as individual kwargs. This logic detects those methods and
+            # reorganizes kwargs appropriately.
+            PARAMS_ONLY_METHODS = {"list_snapshot_options_chain"}
+
+            if method_name in PARAMS_ONLY_METHODS:
+                # Extract query parameters from kwargs
+                query_params = {}
+                direct_params = {}
+
+                # Parameters that should go in params dict (query parameters)
+                param_keys = {
+                    "strike_price",
+                    "expiration_date",
+                    "contract_type",
+                    "limit",
+                    "order",
+                    "sort",
+                }
+
+                # Parameters that are passed directly to SDK method
+                direct_keys = {"underlying_asset", "raw", "options", "params"}
+
+                # Separate kwargs into direct parameters and query parameters
+                for key, value in kwargs.items():
+                    if key in param_keys and value is not None:
+                        # Query parameter with non-None value
+                        query_params[key] = value
+                    elif key in direct_keys:
+                        # Direct parameter (even if None)
+                        direct_params[key] = value
+                    # Note: Unknown parameters are silently dropped to avoid SDK errors
+
+                # Merge with existing params dict if present
+                if "params" in direct_params and direct_params["params"]:
+                    # User provided additional params - merge with extracted query params
+                    query_params.update(direct_params["params"])
+
+                # Update kwargs with reorganized parameters
+                # Only include params dict if there are actual query parameters
+                if query_params:
+                    direct_params["params"] = query_params
+
+                kwargs = direct_params
+
             # Make API call with raw=True to get binary response
             results = method(**kwargs, raw=True)
 
